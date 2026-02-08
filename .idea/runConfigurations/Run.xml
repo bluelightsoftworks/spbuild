@@ -14,7 +14,8 @@
     <option name="isRedirectInput" value="false" />
     <option name="redirectInputPath" value="" />
     <method v="2">
-      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_cp" />
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_cp_example" />
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_cp_scripts" />
       <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
     </method>
   </configuration>

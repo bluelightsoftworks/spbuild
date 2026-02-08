@@ -15,7 +15,7 @@ Here are some available options:
 ## Compilation requirements
 ### Linux
 The default compiler for linux is GCC so you will need to install cross-compilers if you want to compile for other platforms.
-- For Windows targets, install `mingw-w64` (on Arch, `sudo yay -S mingw-w64`)
+- For Windows targets, install `mingw-w64` and peldd (on Arch, `sudo yay -S mingw-w64 peldd`) 
 - For MacOS targets, cross compilation requires a bit more work and `osxcross`. Follow the instructions on their [GitHub page](https://github.com/tpoechtrager/osxcross) for gcc
 
 If you also want to target different architectures, you will need to install the appropriate cross-compilers.
@@ -58,6 +58,15 @@ If you also want to target different architectures, you will need to install the
     - `optional`: If true, the build will continue even if the dependency is not found
 - `additional_includes`: List of additional include directories (relative to the project path) that are NOT in any local dependency
 
+## Scripts
+### cpdll.py
+**Usage**: 
+Automatically detects and copies required DLLs from your mingw bin folder
+```shell
+python <path_to_cpdll.py> <path_to_exe>
+```
+*Note: automatically called during \*nix -> Windows compilation* 
+
 ## TODO list
 - [ ] Compile a basic solution
   - [ ] Compile with MSVC
@@ -78,6 +87,8 @@ If you also want to target different architectures, you will need to install the
 - 0.2: Simple GCC.. Set the groundwork 
   - 0.2.1: Fix strange documentation, add a bit more error handling <- Latest
 - 0.3: Cross compilation support, target architectures, target platforms <- Dev branch
+  - 0.3.1: Bugfixes
+  - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling)
 - 0.4: More compiler support (Clang, MSVC) <- First Prerelease
 - 0.5: Incremental build support
 - 0.6: Cleanup, refactor, documentation

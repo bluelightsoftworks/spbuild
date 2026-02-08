@@ -10,8 +10,8 @@
         "linux"
       ],
       "target_archs": [
-        "X86",
-        "X64"
+        "x86",
+        "x86_64"
       ],
       "path": "./alpha/",
       "dependencies": [
@@ -35,7 +35,7 @@
         "linux"
       ],
       "target_archs": [
-        "X64"
+        "x86_64"
       ],
       "path": "./beta/",
       "dependencies": [],

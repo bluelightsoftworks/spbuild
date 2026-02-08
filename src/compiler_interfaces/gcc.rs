@@ -1,10 +1,10 @@
 use std::fs::{exists, create_dir_all};
 use std::path::{Path, PathBuf};
 
-use std::{io};
+use std::{env, io};
 use std::io::Write;
 
-use std::process::Command;
+use std::process::{Command, Stdio};
 use crate::compiler_interfaces::common::Compiler;
 use crate::helpers::console::Console;
 use crate::helpers::file_tools::*;
@@ -29,6 +29,7 @@ impl GccCompiler {
         let bin_path = Path::new("/usr/bin");
         let gcc_path = bin_path.join(format!("{target_spec}-gcc"));
         let gpp_path = bin_path.join(format!("{target_spec}-g++"));
+        // MinGW ld path
         let ld_path: PathBuf = if t_platform == "w64-mingw32" {
             bin_path.join(format!("{}-ld", target_spec))
         } else {
@@ -47,52 +48,106 @@ impl GccCompiler {
         }
 
     }
-}
 
-///
-/// Crafts the GCC command for compiling a single source file.
-///
-/// # Arguments
-/// * `driver` - The path to the GCC driver (gcc or g++).
-/// * `abs_output_dir` - The absolute path to the output directory.
-/// * `abs_infile_path` - The absolute path to the input source file.
-/// * `abs_output_path` - The absolute path to the output object file.
-/// * `additional_includes` - A vector of additional include paths.
-/// # Returns
-/// A `Command` object representing the GCC command.
-///
-fn craft_gcc_command(
-    driver: &str,
-    is32bit: bool,
-    abs_output_dir: &PathBuf,
-    abs_infile_path: &PathBuf,
-    abs_output_path: &PathBuf,
-    additional_includes: &Vec<PathBuf>) -> Command {
 
-    // Crafts the command base
-    let mut command = Command::new(driver);
+    ///
+    /// Resolves DLL dependencies for a Windows executable by running the `cpdll.py` script.
+    /// This script is expected to be located at `./scripts/cpdll.py` and should handle copying the necessary DLLs to the executable's directory.
+    /// # Arguments
+    /// * `exe_path` - The path to the executable for which to resolve DLL dependencies
+    ///
+    pub fn resolve_dlls(exe_path: &PathBuf, verbose: &bool) {
+        let spbuild_root = env::current_exe().unwrap();
 
-    // Special 32 bit scenario
-    if is32bit {
-        command.arg("-m32");
+        // This unholy chunk of unwraps just gets the path to the scripts from the spbuild executable path
+        let cpdll_script_path = Path::new(spbuild_root.to_str().unwrap()).parent().unwrap().join("scripts").join("cpdll.py");
+
+        if !cpdll_script_path.exists() {
+            Console::log_warning("cp_dlls.py script not found. You will need to copy DLLs yourself");
+            return;
+        }
+
+        Console::log_info("\n\n===> Running cpdll.py script for DLL dependency resolution...");
+
+        // Command crafting
+        let mut command = Command::new("python");
+
+        command
+            .arg(&cpdll_script_path)
+            .arg(exe_path);
+
+        // Eventual logging configuration for the script execution
+        if verbose.eq(&true) {
+            command
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit());
+
+            Console::log_verbose(&format!("Executing command: python {} {}", &cpdll_script_path.display(), exe_path.display()), verbose.eq(&true));
+        }
+
+        // Execution
+        let output = command.output();
+
+        // Error handling
+        match output {
+            Ok(output) => {
+                if output.status.success() {
+                    Console::log_info("DLLs copied successfully.");
+                } else {
+                    Console::log_error("cp_dlls.py script failed to execute. You will need to copy DLLs yourself");
+                }
+            },
+            Err(_) => {
+                Console::log_error("Failed to execute cp_dlls.py script. You will need to copy DLLs yourself");
+            }
+        }
     }
 
-    command
-        .current_dir(&abs_output_dir)
-        .arg("-c")
-        .arg(&abs_infile_path)
-        .arg("-o")
-        .arg(&abs_output_path);
+    ///
+    /// Crafts the GCC command for compiling a single source file.
+    ///
+    /// # Arguments
+    /// * `driver` - The path to the GCC driver (gcc or g++).
+    /// * `abs_output_dir` - The absolute path to the output directory.
+    /// * `abs_infile_path` - The absolute path to the input source file.
+    /// * `abs_output_path` - The absolute path to the output object file.
+    /// * `additional_includes` - A vector of additional include paths.
+    /// # Returns
+    /// A `Command` object representing the GCC command.
+    ///
+    fn craft_command(
+        driver: &str,
+        is32bit: bool,
+        abs_output_dir: &PathBuf,
+        abs_infile_path: &PathBuf,
+        abs_output_path: &PathBuf,
+        additional_includes: &Vec<PathBuf>) -> Command {
 
-    // Adds includes
-    for include_path in additional_includes {
-        // Include paths are expected to be absolute or already correctly rooted.
-        command.arg("-I").arg(include_path);
+        // Crafts the command base
+        let mut command = Command::new(driver);
+
+        // Special 32 bit scenario
+        if is32bit {
+            command.arg("-m32");
+        }
+
+        command
+            .current_dir(&abs_output_dir)
+            .arg("-c")
+            .arg(&abs_infile_path)
+            .arg("-o")
+            .arg(&abs_output_path);
+
+        // Adds includes
+        for include_path in additional_includes {
+            // Include paths are expected to be absolute or already correctly rooted.
+            command.arg("-I").arg(include_path);
+        }
+
+        command
     }
 
-    command
 }
-
 
 impl Compiler for GccCompiler {
 
@@ -131,7 +186,7 @@ impl Compiler for GccCompiler {
             .and_then(|e| e.to_str())
             .is_some_and(|e| e.eq_ignore_ascii_case("cpp") || e.eq_ignore_ascii_case("cc") || e.eq_ignore_ascii_case("cxx"))
         {
-            "/usr/bin/g++"
+            &self.gpp_path
         } else {
             &self.gcc_path
         };
@@ -139,7 +194,7 @@ impl Compiler for GccCompiler {
         Console::log_verbose(&format!("input:  {}", abs_infile_path.display()), _verbose);
         Console::log_verbose(&format!("output: {}", abs_output_path.display()), _verbose);
 
-        let mut command = craft_gcc_command(&driver, self.is32bit, &abs_output_dir, &abs_infile_path, &abs_output_path, &additional_includes);
+        let mut command = Self::craft_command(&driver, self.is32bit, &abs_output_dir, &abs_infile_path, &abs_output_path, &additional_includes);
 
         // Executes the command
         let output = command
@@ -168,15 +223,15 @@ impl Compiler for GccCompiler {
         _verbose: bool,
     ) -> Result<(), &'static str> {
 
-        let gcc_path = &self.gcc_path;
+        let gpp_path = &self.gpp_path;
         let abs_solution_root = solution_root.canonicalize().map_err(|_| "Failed to canonicalize solution root path")?;
 
         Console::log_info(&format!(
-            "Compiling Project: {} version {} ({}) using GCC at {}\n",
+            "Compiling Project: {} version {} ({}) using G++ at {}\n",
             project.name,
             project.version,
             project.path.display(),
-            &gcc_path
+            &gpp_path
         ));
 
         let source_dir = solution_root
@@ -191,6 +246,7 @@ impl Compiler for GccCompiler {
 
         let rel_output_dir = &abs_solution_root
             .join("output")
+            .join(format!("{}-{}", &self.t_platform, &self.t_arch))
             .join(&project.path);
 
         if !exists(rel_output_dir).unwrap_or(false) {
@@ -225,10 +281,10 @@ impl Compiler for GccCompiler {
 
     fn link_project(
         &self, project: &Project,
-        solution: &Solution, // Will probably be used
+        _solution: &Solution, // Will probably be used
         solution_root: &PathBuf,
         includes_paths: Vec<PathBuf>,
-        _verbose: bool) -> Result<(), &'static str> {
+        verbose: bool) -> Result<(), &'static str> {
 
         if project.project_type == ProjectType::StaticLib
         {
@@ -237,7 +293,12 @@ impl Compiler for GccCompiler {
         }
 
         // Absolute path to the project's output directory containing object files.
-        let abs_project_output_path = &solution_root.join("output").join(&project.path).canonicalize().map_err(|_| {"Project Output Path not found"})?;
+        let abs_project_output_path = &solution_root
+            .join("output")
+            .join(format!("{}-{}", &self.t_platform, &self.t_arch))
+            .join(&project.path)
+            .canonicalize()
+            .map_err(|_| {"Project Output Path not found"})?;
         let files = list_files(&abs_project_output_path).map_err(|_| "Failed to list object files")?;
 
         // Project's object files
@@ -256,12 +317,13 @@ impl Compiler for GccCompiler {
         }
 
 
+        let mut command = Command::new(&self.gpp_path);
+
         // For project `alpha`, output executable is at `<project_root>/output/alpha/alpha`.
         let output_executable = abs_project_output_path.join(&project.name);
-        Console::log_info(&format!("Linking executable: {}", output_executable.display()));
 
-        // Use the C++ compiler driver for linking so that startup code and standard libraries are included.
-        let mut command = Command::new(&self.gpp_path);
+
+        Console::log_info(&format!("Linking executable: {}", output_executable.display()));
 
         // Adds object files to the linker command
         command.current_dir(&abs_project_output_path);
@@ -269,10 +331,21 @@ impl Compiler for GccCompiler {
             command.arg(obj);
         }
 
+        if &self.t_platform == "w64-mingw32" {
+            let exe_with_ext = output_executable.with_added_extension("exe");
+            Console::log_verbose(&format!("Windows target detected; using executable name: {}", exe_with_ext.display()), verbose);
 
-        command.arg("-o").arg(&output_executable);
+            // TODO: Give the user the option to choose static or dynamic linking for Windows targets.
+            // Also use DLLs when available
+            command
+                //.arg("--static")
+                .arg("-o").arg(&exe_with_ext);
+        }
+        else {
+            command.arg("-o").arg(&output_executable);
+        }
 
-        Console::log_verbose(&format!("Linking command: {:?}", command), _verbose);
+        Console::log_verbose(&format!("Linking command: {:?}", command), verbose);
 
         let output = command
             .output()
@@ -288,5 +361,6 @@ impl Compiler for GccCompiler {
         } else {
             Err("Linking failed.")
         }
+
     }
 }

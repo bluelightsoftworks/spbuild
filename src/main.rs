@@ -44,12 +44,14 @@ use crate::config_parser::{parse_config};
 
 // Compilation helpers
 use crate::compiler_interfaces::common::Compiler;
+use crate::compiler_interfaces::gcc::GccCompiler;
 use crate::dependency_manager::local_resolve::{has_circular_dependency, resolve_project_build_inputs};
 
 // Structs
-use crate::solution::{Solution};
+use crate::solution::{ProjectType, Solution};
 use crate::target::{Architecture, Platform};
 
+//TODO: [URGENT] Make an output directory for each target (platform and arch)
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -102,6 +104,8 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
 
     Console::log_success(format!("Successfully parsed solution: {}", solution.name).as_str());
 
+// ===== PRE BUILD =====
+
     // Track what we've already compiled to avoid rebuilding the same dependency multiple times.
     let mut compiled_projects: Vec<String> = Vec::new();
 
@@ -119,8 +123,12 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
         }
     }
 
+// ===== BUILD =====
+
     // Compiles each project (but checks which ones are compiled tho)
     for project in &solution.projects {
+
+    // ===== COMPILATION  =====
 
         // Creates compiler for particular target
         let compiler = compiler_interfaces::gcc::GccCompiler::new(target_arch.to_string(), target_platform.to_gcc_target_platform());
@@ -151,6 +159,8 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
                 Console::log_fatal(format!("Error compiling dependency {}: {}", dep.name, e).as_str());
                 return Err(());
             }
+
+        // ===== LINKING  =====
 
             let res = compiler.link_project(
                 dep,
@@ -202,6 +212,25 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
             return Err(());
         } else {
             Console::log_success("=== Project linked successfully ===");
+        }
+
+        // DLL resolution for windows targets
+        if target_platform == Platform::Win && project.project_type == ProjectType::Executable {
+
+            let gcc_target_arch = target_arch.to_gcc_target_arch();
+            let gcc_target_platform = target_platform.to_gcc_target_platform();
+
+            let abs_project_output_path = &working_dir
+                .join("output")
+                .join(format!("{}-{}", gcc_target_platform, gcc_target_arch)) // Target-specific output folder
+                .join(&project.path);
+
+            abs_project_output_path
+                .canonicalize()
+                .map_err(|_| {"Project Output Path not found"}).unwrap();
+            let abs_exe_path = abs_project_output_path.join(&project.name).with_added_extension("exe");
+
+            GccCompiler::resolve_dlls(&abs_exe_path, &args.verbose)
         }
 
         compiled_projects.push(project.name.clone());
