@@ -7,7 +7,7 @@
 The goal of this project is to help little teams and solo devs configuring a multiplatform dev environment in a [WORA](https://en.wikipedia.org/wiki/Write_once,_run_anywhere) fashion.
 To use, you only need to run
 ```bash
-spbuild build [OPTIONS]
+spbuild [OPTIONS]
 ```
 Here are some available options:
 - `-s`, `--solution-path {path}`: Path to the project config file (If folder passed, defaults to spbuild.json)
@@ -101,5 +101,6 @@ python <path_to_cpdll.py> <path_to_exe>
 - 0.9: Final Polish, prepare for release
 
 - 1.0: Release!
+
 
 
