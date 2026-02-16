@@ -10,13 +10,17 @@ To use, you only need to run
 spbuild build [OPTIONS]
 ```
 Here are some available options:
-- `-s`, `--solution-path`: Path to the project config file (If folder passed, defaults to spbuild.json)
+- `-s`, `--solution-path {path}`: Path to the project config file (If folder passed, defaults to spbuild.json)
+- `-p`, `--platform {win|linux|macos-25.2}`: Target platform to build for. Will fail if the compiler or the solution doesn't support the specified platform
+- `-a`, `--arch {x86|x64|arm32|arm64|riscv64}`: Target architecture to build for. Will fail if the compiler or the solution doesn't support the specified architecture
+- `-v`, `--verbose`: Enable verbose output
 
 ## Compilation requirements
 ### Linux
 The default compiler for linux is GCC so you will need to install cross-compilers if you want to compile for other platforms.
 - For Windows targets, install `mingw-w64` and peldd (on Arch, `sudo yay -S mingw-w64 peldd`) 
 - For MacOS targets, cross compilation requires a bit more work and `osxcross`. Follow the instructions on their [GitHub page](https://github.com/tpoechtrager/osxcross) for gcc
+  Please remember that MacOS compilation isn't planned to be supported in the near future.
 
 If you also want to target different architectures, you will need to install the appropriate cross-compilers.
 - For ARM targets, install `aarch64-linux-gnu-gcc` (on Arch, `sudo yay -S aarch64-linux-gnu-gcc`)
@@ -74,20 +78,20 @@ python <path_to_cpdll.py> <path_to_exe>
     - [ ] Multi project solution
     - [ ] Link
     - [ ] Cross compile (Windows -> Linux)
-  - [ ] Compile with GCC
+  - [x] Compile with GCC
     - [x] Single project solution
     - [x] Link
     - [x] Multi project solution
     - [x] Link
-    - [ ] Cross compile (Linux -> Windows)
+    - [x] Cross compile (Linux -> Windows)
 - [ ] Incremental build support
 - [ ] Dependency and package manager (definitely)
 
 ## Road to 1.0
 - 0.2: Simple GCC.. Set the groundwork 
   - 0.2.1: Fix strange documentation, add a bit more error handling <- Latest
-- 0.3: Cross compilation support, target architectures, target platforms <- Dev branch
-  - 0.3.1: Bugfixes
+- 0.3: Cross compilation support, target architectures, target platforms 
+  - 0.3.1: Bugfixes <- Dev branch
   - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling)
 - 0.4: More compiler support (Clang, MSVC) <- First Prerelease
 - 0.5: Incremental build support
