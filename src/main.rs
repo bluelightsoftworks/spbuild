@@ -35,7 +35,7 @@ pub mod dependency_manager {
 }
 
 use std::env;
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use clap::Parser;
 
 // Basic helpers
@@ -51,13 +51,11 @@ use crate::dependency_manager::local_resolve::{has_circular_dependency, resolve_
 use crate::solution::{ProjectType, Solution};
 use crate::target::{Architecture, Platform};
 
-//TODO: [URGENT] Make an output directory for each target (platform and arch)
-
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
     #[arg(short, long, help = "Path to the solution configuration file")]
-    solution_path: String,
+    solution_path: Option<String>,
 
     #[arg(short, long, help = "The target platform for the build (e.g., linux, windows). Defaults to the current platform if not specified.")]
     platform: Option<String>,
@@ -131,7 +129,7 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
     // ===== COMPILATION  =====
 
         // Creates compiler for particular target
-        let compiler = compiler_interfaces::gcc::GccCompiler::new(target_arch.to_string(), target_platform.to_gcc_target_platform());
+        let compiler = GccCompiler::new(target_arch.to_string(), target_platform.to_gcc_target_platform());
 
         // Resolve dependencies and include dirs.
         let inputs = match resolve_project_build_inputs(project, &solution, &working_dir, args.verbose) {
@@ -161,6 +159,7 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
             }
 
         // ===== LINKING  =====
+            //TODO: [URGENT] Implement the additional_static_libs setting in the config for linking
 
             let res = compiler.link_project(
                 dep,
@@ -242,7 +241,9 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
 
 fn main() {
     let args = Args::parse();
-    let mut config_path = PathBuf::from(&args.solution_path);
+    let config_path_string = args.solution_path.clone().unwrap_or_else(|| env::current_dir().unwrap().join("spbuild.json").display().to_string()) ;
+
+    let mut config_path = PathBuf::from(&config_path_string);
 
     Console::log_info("===== SPBuild Starting =====");
 

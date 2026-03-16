@@ -33,6 +33,7 @@ pub struct Project {
     pub path: PathBuf,
     pub dependencies: Vec<Dependency>,
     pub additional_includes: Vec<PathBuf>,
+    pub additional_libs: Vec<PathBuf>,
 }
 
 
@@ -46,6 +47,7 @@ impl Project {
         path: PathBuf,
         dependencies: Vec<Dependency>,
         additional_includes: Vec<PathBuf>,
+        additional_libs: Vec<PathBuf>,
     ) -> Self {
         Project {
             name: name.to_string(),
@@ -56,6 +58,7 @@ impl Project {
             path,
             dependencies,
             additional_includes,
+            additional_libs,
         }
     }
 }

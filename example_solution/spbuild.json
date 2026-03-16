@@ -24,7 +24,8 @@
           "version": "~1.5.0"
         }
       ],
-      "additional_includes": []
+      "additional_includes": [],
+      "additional_static_libs": [],
     },
     {
       "name": "ProjectBeta",
@@ -39,7 +40,8 @@
       ],
       "path": "./beta/",
       "dependencies": [],
-      "additional_includes": []
+      "additional_includes": [],
+      "additional_static_libs": []
     }
   ]
 }

@@ -316,6 +316,16 @@ impl Compiler for GccCompiler {
             object_files.append(&mut dep_object_files);
         }
 
+        // Additional static libraries
+        for lib_path in &project.additional_libs {
+            if exists(lib_path).unwrap_or(false) {
+                Console::log_verbose(&format!("Adding additional library to link: {}", lib_path.display()), verbose);
+                object_files.push(lib_path.clone());
+            } else {
+                Console::log_error(&format!("Additional library not found: {}.", lib_path.display()));
+                Err("Failed to find additional library for linking")?;
+            }
+        }
 
         let mut command = Command::new(&self.gpp_path);
 
@@ -331,6 +341,7 @@ impl Compiler for GccCompiler {
             command.arg(obj);
         }
 
+        // Specific for Windows targets (DLLs and exe size limitations)
         if &self.t_platform == "w64-mingw32" {
             let exe_with_ext = output_executable.with_added_extension("exe");
             Console::log_verbose(&format!("Windows target detected; using executable name: {}", exe_with_ext.display()), verbose);
