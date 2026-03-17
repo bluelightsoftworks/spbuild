@@ -12,6 +12,7 @@ Here are some available options:
 - `-p`, `--platform {win|linux|macos-25.2}`: Target platform to build for. Will fail if the compiler or the solution doesn't support the specified platform
 - `-a`, `--arch {x86|x64|arm32|arm64|riscv64}`: Target architecture to build for. Will fail if the compiler or the solution doesn't support the specified architecture
 - `-v`, `--verbose`: Enable verbose output
+- `--version`: Show version information and exit
 If no options are passed, spbuild will try to build for the current platform and architecture in the current directory
 (looking for spbuild.json in the current directory)
 
@@ -93,11 +94,12 @@ python <path_to_cpdll.py> <path_to_exe>
 
 ## Road to 1.0
 - 0.2: Simple GCC.. Set the groundwork 
-  - 0.2.1: Fix strange documentation, add a bit more error handling <- Latest
+  - 0.2.1: Fix strange documentation, add a bit more error handling 
 - 0.3: Cross compilation support, target architectures, target platforms 
-  - 0.3.1: Bugfixes <- Dev branch
-  - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling)
-- 0.4: More compiler support (Clang, MSVC) <- First Prerelease
+  - 0.3.1: Bugfixes 
+  - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling) <- Latest <- Dev branch
+- 0.4: More compiler support (Clang, MSVC)
+  - 0.4.1: CLI Rework (`spbuild build`, `spbuild init`...) <- First Prerelease
 - 0.5: Incremental build support
 - 0.6: Cleanup, refactor, documentation
 - 0.7: Package manager and external dependencies

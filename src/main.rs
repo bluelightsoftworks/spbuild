@@ -52,7 +52,7 @@ use crate::solution::{ProjectType, Solution};
 use crate::target::{Architecture, Platform};
 
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, disable_version_flag = true)]
 struct Args {
     #[arg(short, long, help = "Path to the solution configuration file")]
     solution_path: Option<String>,
@@ -65,6 +65,9 @@ struct Args {
 
     #[arg(short, long, action = clap::ArgAction::SetTrue, help = "Enable verbose output")]
     verbose: bool,
+
+    #[arg(long, action = clap::ArgAction::SetTrue, help = "Prints SPBuild version and exits")]
+    version: bool,
 }
 
 fn config_file_check(config_path: &PathBuf) -> Result<PathBuf, String> {
@@ -239,8 +242,25 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
 }
 
 
+fn print_version_and_exit() {
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
+    const NAME: &str = env!("CARGO_PKG_NAME");
+    const DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
+    const HOMEPAGE: &str = env!("CARGO_PKG_HOMEPAGE");
+
+    Console::log_info(format!("===> {} version: {}\n", NAME, VERSION).as_str());
+    Console::log_info(format!("{}\n", DESCRIPTION).as_str());
+    Console::log_info(format!("More info at: {}", HOMEPAGE).as_str());
+    std::process::exit(0);
+}
+
 fn main() {
     let args = Args::parse();
+
+    if args.version {
+        print_version_and_exit();
+    }
+
     let config_path_string = args.solution_path.clone().unwrap_or_else(|| env::current_dir().unwrap().join("spbuild.json").display().to_string()) ;
 
     let mut config_path = PathBuf::from(&config_path_string);
