@@ -35,7 +35,7 @@ pub mod dependency_manager {
 }
 
 use std::env;
-use std::path::{PathBuf};
+use std::path::PathBuf;
 use clap::Parser;
 
 // Basic helpers
@@ -44,18 +44,18 @@ use crate::config_parser::{parse_config};
 
 // Compilation helpers
 use crate::compiler_interfaces::common::Compiler;
+use crate::compiler_interfaces::gcc::GccCompiler;
 use crate::dependency_manager::local_resolve::{has_circular_dependency, resolve_project_build_inputs};
 
 // Structs
-use crate::solution::{Solution};
+use crate::solution::{ProjectType, Solution};
 use crate::target::{Architecture, Platform};
 
-
 #[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
+#[command(version, about, long_about = None, disable_version_flag = true)]
 struct Args {
     #[arg(short, long, help = "Path to the solution configuration file")]
-    solution_path: String,
+    solution_path: Option<String>,
 
     #[arg(short, long, help = "The target platform for the build (e.g., linux, windows). Defaults to the current platform if not specified.")]
     platform: Option<String>,
@@ -65,6 +65,9 @@ struct Args {
 
     #[arg(short, long, action = clap::ArgAction::SetTrue, help = "Enable verbose output")]
     verbose: bool,
+
+    #[arg(long, action = clap::ArgAction::SetTrue, help = "Prints SPBuild version and exits")]
+    version: bool,
 }
 
 fn config_file_check(config_path: &PathBuf) -> Result<PathBuf, String> {
@@ -102,6 +105,8 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
 
     Console::log_success(format!("Successfully parsed solution: {}", solution.name).as_str());
 
+// ===== PRE BUILD =====
+
     // Track what we've already compiled to avoid rebuilding the same dependency multiple times.
     let mut compiled_projects: Vec<String> = Vec::new();
 
@@ -119,11 +124,15 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
         }
     }
 
+// ===== BUILD =====
+
     // Compiles each project (but checks which ones are compiled tho)
     for project in &solution.projects {
 
+    // ===== COMPILATION  =====
+
         // Creates compiler for particular target
-        let compiler = compiler_interfaces::gcc::GccCompiler::new(target_arch.to_string(), target_platform.to_gcc_target_platform());
+        let compiler = GccCompiler::new(target_arch.to_string(), target_platform.to_gcc_target_platform());
 
         // Resolve dependencies and include dirs.
         let inputs = match resolve_project_build_inputs(project, &solution, &working_dir, args.verbose) {
@@ -151,6 +160,9 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
                 Console::log_fatal(format!("Error compiling dependency {}: {}", dep.name, e).as_str());
                 return Err(());
             }
+
+        // ===== LINKING  =====
+            //TODO: [URGENT] Implement the additional_static_libs setting in the config for linking
 
             let res = compiler.link_project(
                 dep,
@@ -204,6 +216,25 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
             Console::log_success("=== Project linked successfully ===");
         }
 
+        // DLL resolution for windows targets
+        if target_platform == Platform::Win && project.project_type == ProjectType::Executable {
+
+            let gcc_target_arch = target_arch.to_gcc_target_arch();
+            let gcc_target_platform = target_platform.to_gcc_target_platform();
+
+            let abs_project_output_path = &working_dir
+                .join("output")
+                .join(format!("{}-{}", gcc_target_platform, gcc_target_arch)) // Target-specific output folder
+                .join(&project.path);
+
+            abs_project_output_path
+                .canonicalize()
+                .map_err(|_| {"Project Output Path not found"}).unwrap();
+            let abs_exe_path = abs_project_output_path.join(&project.name).with_added_extension("exe");
+
+            GccCompiler::resolve_dlls(&abs_exe_path, &args.verbose)
+        }
+
         compiled_projects.push(project.name.clone());
     }
     Console::log_info("\n= BUILD COMPLETE =\n");
@@ -211,9 +242,28 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
 }
 
 
+fn print_version_and_exit() {
+    const VERSION: &str = env!("CARGO_PKG_VERSION");
+    const NAME: &str = env!("CARGO_PKG_NAME");
+    const DESCRIPTION: &str = env!("CARGO_PKG_DESCRIPTION");
+    const HOMEPAGE: &str = env!("CARGO_PKG_HOMEPAGE");
+
+    Console::log_info(format!("===> {} version: {}\n", NAME, VERSION).as_str());
+    Console::log_info(format!("{}\n", DESCRIPTION).as_str());
+    Console::log_info(format!("More info at: {}", HOMEPAGE).as_str());
+    std::process::exit(0);
+}
+
 fn main() {
     let args = Args::parse();
-    let mut config_path = PathBuf::from(&args.solution_path);
+
+    if args.version {
+        print_version_and_exit();
+    }
+
+    let config_path_string = args.solution_path.clone().unwrap_or_else(|| env::current_dir().unwrap().join("spbuild.json").display().to_string()) ;
+
+    let mut config_path = PathBuf::from(&config_path_string);
 
     Console::log_info("===== SPBuild Starting =====");
 

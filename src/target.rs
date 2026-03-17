@@ -49,6 +49,19 @@ impl fmt::Display for Architecture {
             Architecture::RISCV64 => write!(f, "riscv64"),
         }
     }
+
+}
+
+impl Architecture{
+    pub fn to_gcc_target_arch(&self) -> String {
+        match self {
+            Architecture::X86 => "i686".to_string(),
+            Architecture::X64 => "x86_64".to_string(),
+            Architecture::ARM => "arm".to_string(),
+            Architecture::ARM64 => "aarch64".to_string(),
+            Architecture::RISCV64 => "riscv64".to_string(),
+        }
+    }
 }
 
 impl Architecture {

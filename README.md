@@ -1,22 +1,27 @@
 # Single Player Build System (spbuild)
 > The build system for singleplayer devs
 
-**WARNING: CROSS COMPILATION IS CURENTLY BROKEN. WE ARE WORKING ON IT**
-
 ## About
-The goal of this project is to help little teams and solo devs configuring a multiplatform dev environment in a [WORA](https://en.wikipedia.org/wiki/Write_once,_run_anywhere) fashion.
-To use, you only need to run
+The goal of this project is to help little teams and solo devs configuring a multiplatform dev environment in a [WORA](https://en.wikipedia.org/wiki/Write_once,_run_anywhere)
+fashion. To use, you only need to run
 ```bash
-spbuild build [OPTIONS]
+spbuild [OPTIONS]
 ```
 Here are some available options:
-- `-s`, `--solution-path`: Path to the project config file (If folder passed, defaults to spbuild.json)
+- `-s`, `--solution-path {path}`: Path to the project config file (If folder passed, defaults to spbuild.json)
+- `-p`, `--platform {win|linux|macos-25.2}`: Target platform to build for. Will fail if the compiler or the solution doesn't support the specified platform
+- `-a`, `--arch {x86|x64|arm32|arm64|riscv64}`: Target architecture to build for. Will fail if the compiler or the solution doesn't support the specified architecture
+- `-v`, `--verbose`: Enable verbose output
+- `--version`: Show version information and exit
+If no options are passed, spbuild will try to build for the current platform and architecture in the current directory
+(looking for spbuild.json in the current directory)
 
 ## Compilation requirements
 ### Linux
 The default compiler for linux is GCC so you will need to install cross-compilers if you want to compile for other platforms.
-- For Windows targets, install `mingw-w64` (on Arch, `sudo yay -S mingw-w64`)
-- For MacOS targets, cross compilation requires a bit more work and `osxcross`. Follow the instructions on their [GitHub page](https://github.com/tpoechtrager/osxcross) for gcc
+- For Windows targets, install `mingw-w64` and `peldd` (on Arch, `sudo yay -S mingw-w64 peldd`) 
+- For MacOS targets, cross compilation requires a bit more work and `osxcross`. Follow the instructions on their [GitHub page](https://github.com/tpoechtrager/osxcross)
+  for gcc. Please remember that MacOS compilation isn't planned to be supported in the near future.
 
 If you also want to target different architectures, you will need to install the appropriate cross-compilers.
 - For ARM targets, install `aarch64-linux-gnu-gcc` (on Arch, `sudo yay -S aarch64-linux-gnu-gcc`)
@@ -32,6 +37,8 @@ If you also want to target different architectures, you will need to install the
 - Dependency : A project that another project depends on to compile
   - Local dependency : A dependency that is part of the same solution
   - External dependency : A dependency that is not part of the same solution (can be from the package manager)
+- Additional `x`: Anything that is not part of the project dependencies but is still needed to compile the project
+- (ex: additional include directories, additional static libraries, etc.)
 
 ### Project configuration file options
 - `name` : Name of the project. Can be any string
@@ -41,12 +48,13 @@ If you also want to target different architectures, you will need to install the
   - `StaticLib`: A static library that can be linked to other projects
   - `DynamicLib`: A dynamic library (like DLLs on Windows)
 - `target_archs`: List of target architectures. Can be any of the following:
-  - `X64`: 64-bit architecture
+  - `x86_64`: 64-bit architecture
   - `x86`: 32-bit architecture
-  - `ARM64`: ARM 64-bit architecture
-  - `ARM`: ARM 32-bit architecture
+  - `aarch64`: ARM 64-bit architecture
+  - `arm`: ARM 32-bit architecture
+  - `riscv64`: RISC-V 64-bit architecture
 - `target_platforms`: List of target platforms. Can be any of the following:
-  - `windows`: Microsoft Windows
+  - `win`: Microsoft Windows
   - `linux`: Linux-based operating systems
   - `macos-25.2`: Apple's MacOS with Kernel version 25.2 (Needs additional configuration with osxcross)
 - `path`: The path to the project folder (relative to the solution root)
@@ -55,8 +63,18 @@ If you also want to target different architectures, you will need to install the
   - Each dependency is an object with the following properties:
     - `name`: Name of the dependency project
     - `version`: Version of the dependency project
-    - `optional`: If true, the build will continue even if the dependency is not found
 - `additional_includes`: List of additional include directories (relative to the project path) that are NOT in any local dependency
+- `additional_static_libs`: List of additional static library files (relative to the project path) that are NOT in any local dependency
+                            and that are needed to link the project (ex: .a files on Linux, .lib files on Windows)
+
+## Scripts
+### cpdll.py
+**Usage**: 
+Automatically detects and copies required DLLs from your mingw bin folder
+```shell
+python <path_to_cpdll.py> <path_to_exe>
+```
+*Note: automatically called during \*nix -> Windows compilation* 
 
 ## TODO list
 - [ ] Compile a basic solution
@@ -65,7 +83,7 @@ If you also want to target different architectures, you will need to install the
     - [ ] Multi project solution
     - [ ] Link
     - [ ] Cross compile (Windows -> Linux)
-  - [ ] Compile with GCC
+  - [x] Compile with GCC
     - [x] Single project solution
     - [x] Link
     - [x] Multi project solution
@@ -76,9 +94,12 @@ If you also want to target different architectures, you will need to install the
 
 ## Road to 1.0
 - 0.2: Simple GCC.. Set the groundwork 
-  - 0.2.1: Fix strange documentation, add a bit more error handling <- Latest
-- 0.3: Cross compilation support, target architectures, target platforms <- Dev branch
-- 0.4: More compiler support (Clang, MSVC) <- First Prerelease
+  - 0.2.1: Fix strange documentation, add a bit more error handling 
+- 0.3: Cross compilation support, target architectures, target platforms 
+  - 0.3.1: Bugfixes 
+  - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling) <- Latest <- Dev branch
+- 0.4: More compiler support (Clang, MSVC)
+  - 0.4.1: CLI Rework (`spbuild build`, `spbuild init`...) <- First Prerelease
 - 0.5: Incremental build support
 - 0.6: Cleanup, refactor, documentation
 - 0.7: Package manager and external dependencies

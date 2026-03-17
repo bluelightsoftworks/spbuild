@@ -1,13 +1,15 @@
 [package]
 name = "spbuild"
-version = "0.3.0"
+description = "The C++ Build system for singleplayer devs"
+version = "0.3.2"
 edition = "2024"
+homepage = "https://github.com/bluelightsoftworks/spbuild"
 
 [dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
 colored = "3.0.0"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
-strum = "0.27.2"
-strum_macros = "0.27.2"
+strum = "0.28.0"
+strum_macros = "0.28.0"
 # Will be used for later releases twox-hash = "2.1.2"

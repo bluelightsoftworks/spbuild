@@ -10,8 +10,8 @@
         "linux"
       ],
       "target_archs": [
-        "X86",
-        "X64"
+        "x86",
+        "x86_64"
       ],
       "path": "./alpha/",
       "dependencies": [
@@ -24,7 +24,8 @@
           "version": "~1.5.0"
         }
       ],
-      "additional_includes": []
+      "additional_includes": [],
+      "additional_static_libs": [],
     },
     {
       "name": "ProjectBeta",
@@ -35,11 +36,12 @@
         "linux"
       ],
       "target_archs": [
-        "X64"
+        "x86_64"
       ],
       "path": "./beta/",
       "dependencies": [],
-      "additional_includes": []
+      "additional_includes": [],
+      "additional_static_libs": []
     }
   ]
 }
