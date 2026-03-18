@@ -315,12 +315,25 @@ fn main() {
     let current_arch_str = env::consts::ARCH;
     Console::log_info(format!("Current platform/architecture: {}-{}", &current_platform_str, &current_arch_str).as_str());
 
+    // Normalize the current platform string so it matches what `Platform::new` expects.
+    // For example, `env::consts::OS` returns "windows", while the parser may expect "win".
+    let normalized_platform_str = match current_platform_str {
+        "windows" => "win",
+        other => other,
+    };
+
     Console::log_info("\n= STARTING BUILD =\n");
 
     // TODO: Detect using `gcc -dumpmachine` if linux, and `cl.exe` if windows for more accurate target platform/arch.
     // String versions... For printing
-    let target_platform_string = args.platform.clone().unwrap_or_else(|| current_platform_str.to_string());
-    let target_architecture_string = args.architecture.clone().unwrap_or_else(|| current_arch_str.to_string());
+    let target_platform_string = args
+        .platform
+        .clone()
+        .unwrap_or_else(|| normalized_platform_str.to_string());
+    let target_architecture_string = args
+        .architecture
+        .clone()
+        .unwrap_or_else(|| current_arch_str.to_string());
 
     // Enums versions... for actually useful things
     let target_platform: Platform = match Platform::new(&target_platform_string) {
