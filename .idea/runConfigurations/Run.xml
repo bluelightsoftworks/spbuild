@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command" nameIsGenerated="true">
+  <configuration default="false" name="Run" type="CargoCommandRunConfiguration" factoryName="Cargo Command" focusToolWindowBeforeRun="true" nameIsGenerated="true">
     <option name="buildProfileId" value="dev" />
     <option name="command" value="run -- -s ./example_solution -v" />
     <option name="workingDirectory" value="file://$PROJECT_DIR$/target/debug" />
@@ -14,7 +14,8 @@
     <option name="isRedirectInput" value="false" />
     <option name="redirectInputPath" value="" />
     <method v="2">
-      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_cp" />
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_cp_example" />
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_cp_scripts" />
       <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
     </method>
   </configuration>

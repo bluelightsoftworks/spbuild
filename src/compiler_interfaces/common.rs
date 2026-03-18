@@ -15,7 +15,15 @@ pub trait Compiler {
     /// # Returns
     /// * `Ok(())` if compilation is successful, otherwise an error message.
     ///
-    fn compile_file(&self, abs_infile_path: &PathBuf, abs_output_path: &PathBuf, additional_includes: &Vec<PathBuf>, verbose:bool) -> Result<(), &'static str>;
+    fn compile_file(
+        &self,
+        abs_infile_path: &PathBuf,
+        abs_output_path: &PathBuf,
+        // Target platform and architecture are managed at compiler level
+        additional_includes: &Vec<PathBuf>,
+        verbose:bool)
+
+        -> Result<(), &'static str>;
 
     ///
     /// Compiles an entire project.
@@ -31,7 +39,14 @@ pub trait Compiler {
     /// # Note:
     /// This function checks for any circular dependencies in the project before proceeding with compilation.
     ///
-    fn compile_project(&self, project: &Project, solution: &Solution, solution_root: &PathBuf, additional_include_directories: Vec<PathBuf>, verbose:bool) -> Result<(), &'static str>;
+    fn compile_project(
+        &self,
+        project: &Project,
+        solution_root: &PathBuf,
+        additional_include_directories: Vec<PathBuf>,
+        verbose:bool
+    )
+        -> Result<(), &'static str>;
 
     ///
     /// Links the compiled object files of a project into a final executable or library.
@@ -46,8 +61,16 @@ pub trait Compiler {
     /// # Returns
     /// * `Ok(())` if linking is successful, otherwise an error message.
     ///
-    fn link_project(&self, project: &Project, solution: &Solution, project_path: &PathBuf, includes_paths: Vec<PathBuf>, verbose: bool)  -> Result<(), &'static str>;
-    fn detect_compiler_path() -> Option<String>;
+    fn link_project(
+        &self,
+        project: &Project,
+        solution: &Solution,
+        project_path: &PathBuf,
+        includes_paths: Vec<PathBuf>,
+        verbose: bool)
+
+        -> Result<(), &'static str>;
+
 
     fn build_root_from_config_path(project_path: &str) -> Result<PathBuf, &'static str> {
         // `project_path` is the path passed from CLI (currently the config file path).
