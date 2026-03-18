@@ -36,14 +36,34 @@ impl GccCompiler {
             bin_path.join("ld")
         };
 
+        // Prefer target-specific toolchain binaries if they exist, otherwise fall back
+        // to plain tool names that will be resolved via PATH.
+        let gcc_cmd = if gcc_path.exists() {
+            gcc_path.to_string_lossy().into_owned()
+        } else {
+            "gcc".to_string()
+        };
+
+        let gpp_cmd = if gpp_path.exists() {
+            gpp_path.to_string_lossy().into_owned()
+        } else {
+            "g++".to_string()
+        };
+
+        let ld_cmd = if ld_path.exists() {
+            ld_path.to_string_lossy().into_owned()
+        } else {
+            "ld".to_string()
+        };
+
         let is32bit = t_arch == "i386" || t_arch == "i486" || t_arch == "i586" || t_arch == "i686" || t_arch == "x86";
 
         GccCompiler {
-            gcc_path: gcc_path.to_str().unwrap_or("/usr/bin/gcc").to_string(),
-            gpp_path: gpp_path.to_str().unwrap_or("/usr/bin/g++").to_string(),
+            gcc_path: gcc_cmd,
+            gpp_path: gpp_cmd,
             t_arch: t_arch.to_string(),
             t_platform: t_platform.to_string(),
-            ld_path: ld_path.to_str().unwrap_or("/usr/bin/ld").to_string(),
+            ld_path: ld_cmd,
             is32bit,
         }
 
