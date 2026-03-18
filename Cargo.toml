@@ -4,6 +4,14 @@ description = "The C++ Build system for singleplayer devs"
 version = "0.3.2"
 edition = "2024"
 homepage = "https://github.com/bluelightsoftworks/spbuild"
+readme = "README.md"
+license = "GPL-3"
+license-file = "LICENSE"
+categories = [
+    "development-tools::build-utils",
+    "command-line-utilities",
+    "development-tools",
+]
 
 [dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
