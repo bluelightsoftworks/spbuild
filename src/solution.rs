@@ -33,6 +33,7 @@ pub struct Project {
     pub path: PathBuf,
     pub dependencies: Vec<Dependency>,
     pub additional_includes: Vec<PathBuf>,
+    #[serde(rename = "additional_static_libs", default)]
     pub additional_libs: Vec<PathBuf>,
 }
 
