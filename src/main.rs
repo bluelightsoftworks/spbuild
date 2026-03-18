@@ -83,11 +83,41 @@ fn config_file_check(config_path: &PathBuf) -> Result<PathBuf, String> {
         Console::log_warning(format!("Specified path is not a file: {}", config_path.display()).as_str());
         Console::log_warning("using default configuration file: spbuild.json\n");
 
-        // Case path is not a file..
-        //TODO: Check if the file exists in that folder?
-        Ok(config_path.join("spbuild.json"))
-    }
-    else {
+        // Case path is not a file: treat as directory and look for default config
+        let default_config = config_path.join("spbuild.json");
+
+        if !default_config.exists() {
+            Console::log_fatal(
+                format!(
+                    "Default configuration file not found in directory: {}",
+                    default_config.display()
+                )
+                .as_str(),
+            );
+            return Err("Configuration file not found".to_string());
+        }
+
+        if !default_config.is_file() {
+            Console::log_fatal(
+                format!(
+                    "Default configuration path is not a file: {}",
+                    default_config.display()
+                )
+                .as_str(),
+            );
+            return Err("Configuration file is not a regular file".to_string());
+        }
+
+        Console::log_info(
+            format!(
+                "Using default solution configuration file: {}",
+                default_config.display()
+            )
+            .as_str(),
+        );
+
+        Ok(default_config)
+    } else {
         Console::log_info(format!("Using solution configuration file: {}", &config_path.display()).as_str());
 
         // Case path is a file
