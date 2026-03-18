@@ -335,11 +335,29 @@ impl Compiler for GccCompiler {
 
         // Additional static libraries
         for lib_path in &project.additional_libs {
-            if exists(lib_path).unwrap_or(false) {
-                Console::log_verbose(&format!("Adding additional library to link: {}", lib_path.display()), verbose);
-                object_files.push(lib_path.clone());
+            // Resolve library paths relative to the project root so existence checks
+            // and linking do not depend on the current working directory.
+            let resolved_lib_path = {
+                let base_path = if lib_path.is_relative() {
+                    solution_root.join(&project.path).join(lib_path)
+                } else {
+                    lib_path.clone()
+                };
+                // Canonicalize when possible, but fall back to the joined path if it fails.
+                base_path.canonicalize().unwrap_or(base_path)
+            };
+
+            if exists(&resolved_lib_path).unwrap_or(false) {
+                Console::log_verbose(
+                    &format!("Adding additional library to link: {}", resolved_lib_path.display()),
+                    verbose,
+                );
+                object_files.push(resolved_lib_path);
             } else {
-                Console::log_error(&format!("Additional library not found: {}.", lib_path.display()));
+                Console::log_error(&format!(
+                    "Additional library not found: {}.",
+                    resolved_lib_path.display()
+                ));
                 Err("Failed to find additional library for linking")?;
             }
         }
