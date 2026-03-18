@@ -230,7 +230,7 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
             abs_project_output_path
                 .canonicalize()
                 .map_err(|_| {"Project Output Path not found"}).unwrap();
-            let abs_exe_path = abs_project_output_path.join(&project.name).with_added_extension("exe");
+            let abs_exe_path = abs_project_output_path.join(&project.name).with_extension("exe");
 
             GccCompiler::resolve_dlls(&abs_exe_path, &args.verbose)
         }
