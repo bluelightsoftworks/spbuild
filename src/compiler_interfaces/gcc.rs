@@ -398,7 +398,7 @@ impl Compiler for GccCompiler {
 
         // Specific for Windows targets (DLLs and exe size limitations)
         if &self.t_platform == "w64-mingw32" {
-            let exe_with_ext = output_executable.with_added_extension("exe");
+            let exe_with_ext = output_executable.with_extension("exe");
             Console::log_verbose(&format!("Windows target detected; using executable name: {}", exe_with_ext.display()), verbose);
 
             // TODO: Give the user the option to choose static or dynamic linking for Windows targets.
