@@ -36,6 +36,7 @@ pub enum Platform {
     MacOS252,
 
     #[serde(rename = "unknown")]
+    #[strum(serialize = "unknown")]
     Unknown,
 }
 
