@@ -134,7 +134,7 @@ if __name__ == "__main__":
     import sys
 
     if len(sys.argv) < 2:
-        print("Usage: copy_deps.py <path/to/executable.exe>")
+        print("Usage: cpdll.py <path/to/executable.exe>")
         sys.exit(1)
 
     exe_path = Path(sys.argv[1])

@@ -57,10 +57,10 @@ struct Args {
     #[arg(short, long, help = "Path to the solution configuration file")]
     solution_path: Option<String>,
 
-    #[arg(short, long, help = "The target platform for the build (e.g., linux, windows). Defaults to the current platform if not specified.")]
+    #[arg(short, long, help = "The target platform for the build (e.g., linux, win). Defaults to the current platform if not specified.")]
     platform: Option<String>,
 
-    #[arg(short, long, help = "The target architecture for the build (e.g., x86, x64, arm, arm64). Defaults to the current architecture if not specified.")]
+    #[arg(short, long, help = "The target architecture for the build (e.g., x86, x86_64, arm, aarch64). Defaults to the current architecture if not specified.")]
     architecture: Option<String>,
 
     #[arg(short, long, action = clap::ArgAction::SetTrue, help = "Enable verbose output")]
@@ -83,11 +83,41 @@ fn config_file_check(config_path: &PathBuf) -> Result<PathBuf, String> {
         Console::log_warning(format!("Specified path is not a file: {}", config_path.display()).as_str());
         Console::log_warning("using default configuration file: spbuild.json\n");
 
-        // Case path is not a file..
-        //TODO: Check if the file exists in that folder?
-        Ok(config_path.join("spbuild.json"))
-    }
-    else {
+        // Case path is not a file: treat as directory and look for default config
+        let default_config = config_path.join("spbuild.json");
+
+        if !default_config.exists() {
+            Console::log_fatal(
+                format!(
+                    "Default configuration file not found in directory: {}",
+                    default_config.display()
+                )
+                .as_str(),
+            );
+            return Err("Configuration file not found".to_string());
+        }
+
+        if !default_config.is_file() {
+            Console::log_fatal(
+                format!(
+                    "Default configuration path is not a file: {}",
+                    default_config.display()
+                )
+                .as_str(),
+            );
+            return Err("Configuration file is not a regular file".to_string());
+        }
+
+        Console::log_info(
+            format!(
+                "Using default solution configuration file: {}",
+                default_config.display()
+            )
+            .as_str(),
+        );
+
+        Ok(default_config)
+    } else {
         Console::log_info(format!("Using solution configuration file: {}", &config_path.display()).as_str());
 
         // Case path is a file
@@ -132,7 +162,7 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
     // ===== COMPILATION  =====
 
         // Creates compiler for particular target
-        let compiler = GccCompiler::new(target_arch.to_string(), target_platform.to_gcc_target_platform());
+        let compiler = GccCompiler::new(target_arch.to_gcc_target_arch(), target_platform.to_gcc_target_platform());
 
         // Resolve dependencies and include dirs.
         let inputs = match resolve_project_build_inputs(project, &solution, &working_dir, args.verbose) {
@@ -230,7 +260,7 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
             abs_project_output_path
                 .canonicalize()
                 .map_err(|_| {"Project Output Path not found"}).unwrap();
-            let abs_exe_path = abs_project_output_path.join(&project.name).with_added_extension("exe");
+            let abs_exe_path = abs_project_output_path.join(&project.name).with_extension("exe");
 
             GccCompiler::resolve_dlls(&abs_exe_path, &args.verbose)
         }
@@ -285,12 +315,25 @@ fn main() {
     let current_arch_str = env::consts::ARCH;
     Console::log_info(format!("Current platform/architecture: {}-{}", &current_platform_str, &current_arch_str).as_str());
 
+    // Normalize the current platform string so it matches what `Platform::new` expects.
+    // For example, `env::consts::OS` returns "windows", while the parser may expect "win".
+    let normalized_platform_str = match current_platform_str {
+        "windows" => "win",
+        other => other,
+    };
+
     Console::log_info("\n= STARTING BUILD =\n");
 
     // TODO: Detect using `gcc -dumpmachine` if linux, and `cl.exe` if windows for more accurate target platform/arch.
     // String versions... For printing
-    let target_platform_string = args.platform.clone().unwrap_or_else(|| current_platform_str.to_string());
-    let target_architecture_string = args.architecture.clone().unwrap_or_else(|| current_arch_str.to_string());
+    let target_platform_string = args
+        .platform
+        .clone()
+        .unwrap_or_else(|| normalized_platform_str.to_string());
+    let target_architecture_string = args
+        .architecture
+        .clone()
+        .unwrap_or_else(|| current_arch_str.to_string());
 
     // Enums versions... for actually useful things
     let target_platform: Platform = match Platform::new(&target_platform_string) {

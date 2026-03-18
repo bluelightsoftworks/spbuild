@@ -36,14 +36,34 @@ impl GccCompiler {
             bin_path.join("ld")
         };
 
+        // Prefer target-specific toolchain binaries if they exist, otherwise fall back
+        // to plain tool names that will be resolved via PATH.
+        let gcc_cmd = if gcc_path.exists() {
+            gcc_path.to_string_lossy().into_owned()
+        } else {
+            "gcc".to_string()
+        };
+
+        let gpp_cmd = if gpp_path.exists() {
+            gpp_path.to_string_lossy().into_owned()
+        } else {
+            "g++".to_string()
+        };
+
+        let ld_cmd = if ld_path.exists() {
+            ld_path.to_string_lossy().into_owned()
+        } else {
+            "ld".to_string()
+        };
+
         let is32bit = t_arch == "i386" || t_arch == "i486" || t_arch == "i586" || t_arch == "i686" || t_arch == "x86";
 
         GccCompiler {
-            gcc_path: gcc_path.to_str().unwrap_or("/usr/bin/gcc").to_string(),
-            gpp_path: gpp_path.to_str().unwrap_or("/usr/bin/g++").to_string(),
+            gcc_path: gcc_cmd,
+            gpp_path: gpp_cmd,
             t_arch: t_arch.to_string(),
             t_platform: t_platform.to_string(),
-            ld_path: ld_path.to_str().unwrap_or("/usr/bin/ld").to_string(),
+            ld_path: ld_cmd,
             is32bit,
         }
 
@@ -57,32 +77,49 @@ impl GccCompiler {
     /// * `exe_path` - The path to the executable for which to resolve DLL dependencies
     ///
     pub fn resolve_dlls(exe_path: &PathBuf, verbose: &bool) {
-        let spbuild_root = env::current_exe().unwrap();
+        let spbuild_root = match env::current_exe() {
+            Ok(path) => path,
+            Err(_) => {
+                Console::log_warning("Unable to determine current executable path; skipping DLL resolution.");
+                return;
+            }
+        };
 
-        // This unholy chunk of unwraps just gets the path to the scripts from the spbuild executable path
-        let cpdll_script_path = Path::new(spbuild_root.to_str().unwrap()).parent().unwrap().join("scripts").join("cpdll.py");
+        // Derive the path to the scripts directory from the spbuild executable path
+        let cpdll_script_path = match spbuild_root.parent() {
+            Some(parent) => parent.join("scripts").join("cpdll.py"),
+            None => {
+                Console::log_warning("Could not determine scripts directory; skipping DLL resolution.");
+                return;
+            }
+        };
 
         if !cpdll_script_path.exists() {
-            Console::log_warning("cp_dlls.py script not found. You will need to copy DLLs yourself");
+            Console::log_warning("cpdll.py script not found. You will need to copy DLLs yourself");
             return;
         }
 
         Console::log_info("\n\n===> Running cpdll.py script for DLL dependency resolution...");
 
-        // Command crafting
-        let mut command = Command::new("python");
+        // Command crafting: execute the script directly (honors shebang where supported)
+        let mut command = Command::new(&cpdll_script_path);
 
-        command
-            .arg(&cpdll_script_path)
-            .arg(exe_path);
+        command.arg(exe_path);
 
         // Eventual logging configuration for the script execution
-        if verbose.eq(&true) {
+        if *verbose {
             command
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit());
 
-            Console::log_verbose(&format!("Executing command: python {} {}", &cpdll_script_path.display(), exe_path.display()), verbose.eq(&true));
+            Console::log_verbose(
+                &format!(
+                    "Executing command: {} {}",
+                    &cpdll_script_path.display(),
+                    exe_path.display()
+                ),
+                true,
+            );
         }
 
         // Execution
@@ -94,11 +131,11 @@ impl GccCompiler {
                 if output.status.success() {
                     Console::log_info("DLLs copied successfully.");
                 } else {
-                    Console::log_error("cp_dlls.py script failed to execute. You will need to copy DLLs yourself");
+                    Console::log_error("cpdll.py script failed to execute. You will need to copy DLLs yourself");
                 }
-            },
+            }
             Err(_) => {
-                Console::log_error("Failed to execute cp_dlls.py script. You will need to copy DLLs yourself");
+                Console::log_error("Failed to execute cpdll.py script. You will need to copy DLLs yourself");
             }
         }
     }
@@ -318,11 +355,29 @@ impl Compiler for GccCompiler {
 
         // Additional static libraries
         for lib_path in &project.additional_libs {
-            if exists(lib_path).unwrap_or(false) {
-                Console::log_verbose(&format!("Adding additional library to link: {}", lib_path.display()), verbose);
-                object_files.push(lib_path.clone());
+            // Resolve library paths relative to the project root so existence checks
+            // and linking do not depend on the current working directory.
+            let resolved_lib_path = {
+                let base_path = if lib_path.is_relative() {
+                    solution_root.join(&project.path).join(lib_path)
+                } else {
+                    lib_path.clone()
+                };
+                // Canonicalize when possible, but fall back to the joined path if it fails.
+                base_path.canonicalize().unwrap_or(base_path)
+            };
+
+            if exists(&resolved_lib_path).unwrap_or(false) {
+                Console::log_verbose(
+                    &format!("Adding additional library to link: {}", resolved_lib_path.display()),
+                    verbose,
+                );
+                object_files.push(resolved_lib_path);
             } else {
-                Console::log_error(&format!("Additional library not found: {}.", lib_path.display()));
+                Console::log_error(&format!(
+                    "Additional library not found: {}.",
+                    resolved_lib_path.display()
+                ));
                 Err("Failed to find additional library for linking")?;
             }
         }
@@ -343,7 +398,7 @@ impl Compiler for GccCompiler {
 
         // Specific for Windows targets (DLLs and exe size limitations)
         if &self.t_platform == "w64-mingw32" {
-            let exe_with_ext = output_executable.with_added_extension("exe");
+            let exe_with_ext = output_executable.with_extension("exe");
             Console::log_verbose(&format!("Windows target detected; using executable name: {}", exe_with_ext.display()), verbose);
 
             // TODO: Give the user the option to choose static or dynamic linking for Windows targets.

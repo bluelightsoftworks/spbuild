@@ -10,7 +10,7 @@ spbuild [OPTIONS]
 Here are some available options:
 - `-s`, `--solution-path {path}`: Path to the project config file (If folder passed, defaults to spbuild.json)
 - `-p`, `--platform {win|linux|macos-25.2}`: Target platform to build for. Will fail if the compiler or the solution doesn't support the specified platform
-- `-a`, `--arch {x86|x64|arm32|arm64|riscv64}`: Target architecture to build for. Will fail if the compiler or the solution doesn't support the specified architecture
+- `-a`, `--architecture {x86_64|aarch64|riscv64}`: Target architecture to build for. Will fail if the compiler or the solution doesn't support the specified architecture
 - `-v`, `--verbose`: Enable verbose output
 - `--version`: Show version information and exit
 If no options are passed, spbuild will try to build for the current platform and architecture in the current directory

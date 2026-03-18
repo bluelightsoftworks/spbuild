@@ -26,16 +26,21 @@ pub enum Architecture {
 #[derive(Deserialize, Debug, Clone, PartialEq, EnumString)]
 pub enum Platform {
     #[serde(rename = "win")]
+    #[serde(alias = "windows")]
     #[strum(serialize = "win")]
+    #[strum(serialize = "windows")]
     Win,
     #[serde(rename = "linux")]
     #[strum(serialize = "linux")]
     Linux,
     #[serde(rename = "macos-25.2")]
+    #[serde(alias = "macos")]
     #[strum(serialize = "macos-25.2")]
+    #[strum(serialize = "macos")]
     MacOS252,
 
     #[serde(rename = "unknown")]
+    #[strum(serialize = "unknown")]
     Unknown,
 }
 
