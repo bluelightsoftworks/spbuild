@@ -162,7 +162,7 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
     // ===== COMPILATION  =====
 
         // Creates compiler for particular target
-        let compiler = GccCompiler::new(target_arch.to_string(), target_platform.to_gcc_target_platform());
+        let compiler = GccCompiler::new(target_arch.to_gcc_target_arch(), target_platform.to_gcc_target_platform());
 
         // Resolve dependencies and include dirs.
         let inputs = match resolve_project_build_inputs(project, &solution, &working_dir, args.verbose) {
