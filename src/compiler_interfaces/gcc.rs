@@ -75,7 +75,7 @@ impl GccCompiler {
         };
 
         if !cpdll_script_path.exists() {
-            Console::log_warning("cp_dlls.py script not found. You will need to copy DLLs yourself");
+            Console::log_warning("cpdll.py script not found. You will need to copy DLLs yourself");
             return;
         }
 
@@ -111,11 +111,11 @@ impl GccCompiler {
                 if output.status.success() {
                     Console::log_info("DLLs copied successfully.");
                 } else {
-                    Console::log_error("cp_dlls.py script failed to execute. You will need to copy DLLs yourself");
+                    Console::log_error("cpdll.py script failed to execute. You will need to copy DLLs yourself");
                 }
             }
             Err(_) => {
-                Console::log_error("Failed to execute cp_dlls.py script. You will need to copy DLLs yourself");
+                Console::log_error("Failed to execute cpdll.py script. You will need to copy DLLs yourself");
             }
         }
     }
