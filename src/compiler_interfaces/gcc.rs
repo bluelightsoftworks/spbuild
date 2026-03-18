@@ -57,10 +57,22 @@ impl GccCompiler {
     /// * `exe_path` - The path to the executable for which to resolve DLL dependencies
     ///
     pub fn resolve_dlls(exe_path: &PathBuf, verbose: &bool) {
-        let spbuild_root = env::current_exe().unwrap();
+        let spbuild_root = match env::current_exe() {
+            Ok(path) => path,
+            Err(_) => {
+                Console::log_warning("Unable to determine current executable path; skipping DLL resolution.");
+                return;
+            }
+        };
 
-        // This unholy chunk of unwraps just gets the path to the scripts from the spbuild executable path
-        let cpdll_script_path = Path::new(spbuild_root.to_str().unwrap()).parent().unwrap().join("scripts").join("cpdll.py");
+        // Derive the path to the scripts directory from the spbuild executable path
+        let cpdll_script_path = match spbuild_root.parent() {
+            Some(parent) => parent.join("scripts").join("cpdll.py"),
+            None => {
+                Console::log_warning("Could not determine scripts directory; skipping DLL resolution.");
+                return;
+            }
+        };
 
         if !cpdll_script_path.exists() {
             Console::log_warning("cp_dlls.py script not found. You will need to copy DLLs yourself");
@@ -69,20 +81,25 @@ impl GccCompiler {
 
         Console::log_info("\n\n===> Running cpdll.py script for DLL dependency resolution...");
 
-        // Command crafting
-        let mut command = Command::new("python");
+        // Command crafting: execute the script directly (honors shebang where supported)
+        let mut command = Command::new(&cpdll_script_path);
 
-        command
-            .arg(&cpdll_script_path)
-            .arg(exe_path);
+        command.arg(exe_path);
 
         // Eventual logging configuration for the script execution
-        if verbose.eq(&true) {
+        if *verbose {
             command
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit());
 
-            Console::log_verbose(&format!("Executing command: python {} {}", &cpdll_script_path.display(), exe_path.display()), verbose.eq(&true));
+            Console::log_verbose(
+                &format!(
+                    "Executing command: {} {}",
+                    &cpdll_script_path.display(),
+                    exe_path.display()
+                ),
+                true,
+            );
         }
 
         // Execution
@@ -96,7 +113,7 @@ impl GccCompiler {
                 } else {
                     Console::log_error("cp_dlls.py script failed to execute. You will need to copy DLLs yourself");
                 }
-            },
+            }
             Err(_) => {
                 Console::log_error("Failed to execute cp_dlls.py script. You will need to copy DLLs yourself");
             }
