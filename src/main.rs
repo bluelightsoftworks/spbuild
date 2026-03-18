@@ -57,10 +57,10 @@ struct Args {
     #[arg(short, long, help = "Path to the solution configuration file")]
     solution_path: Option<String>,
 
-    #[arg(short, long, help = "The target platform for the build (e.g., linux, windows). Defaults to the current platform if not specified.")]
+    #[arg(short, long, help = "The target platform for the build (e.g., linux, win). Defaults to the current platform if not specified.")]
     platform: Option<String>,
 
-    #[arg(short, long, help = "The target architecture for the build (e.g., x86, x64, arm, arm64). Defaults to the current architecture if not specified.")]
+    #[arg(short, long, help = "The target architecture for the build (e.g., x86, x86_64, arm, aarch64). Defaults to the current architecture if not specified.")]
     architecture: Option<String>,
 
     #[arg(short, long, action = clap::ArgAction::SetTrue, help = "Enable verbose output")]
