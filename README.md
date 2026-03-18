@@ -97,7 +97,7 @@ python <path_to_cpdll.py> <path_to_exe>
   - 0.2.1: Fix strange documentation, add a bit more error handling 
 - 0.3: Cross compilation support, target architectures, target platforms 
   - 0.3.1: Bugfixes 
-  - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling) <- Latest <- Dev branch
+  - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling) <- Cargo publishing <- Latest <- Dev branch
 - 0.4: More compiler support (Clang, MSVC)
   - 0.4.1: CLI Rework (`spbuild build`, `spbuild init`...) <- First Prerelease
 - 0.5: Incremental build support
