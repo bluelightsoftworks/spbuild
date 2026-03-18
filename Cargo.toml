@@ -5,8 +5,7 @@ version = "0.3.2"
 edition = "2024"
 homepage = "https://github.com/bluelightsoftworks/spbuild"
 readme = "README.md"
-license = "GPL-3"
-license-file = "LICENSE"
+license = "GPL-3.0-or-later"
 categories = [
     "development-tools::build-utils",
     "command-line-utilities",
