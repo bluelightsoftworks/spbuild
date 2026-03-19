@@ -25,7 +25,12 @@ pub struct GccCompiler {
 impl GccCompiler {
 
     pub fn new(t_arch: String, t_platform: String) -> Self {
-        let target_spec = format!("{}-{}", t_arch, t_platform);
+        let platform_spec = if t_platform == "linux" {
+            "linux-gnu"
+        } else {
+            &t_platform
+        };
+        let target_spec = format!("{}-{}", t_arch, platform_spec);
         let bin_path = Path::new("/usr/bin");
         let gcc_path = bin_path.join(format!("{target_spec}-gcc"));
         let gpp_path = bin_path.join(format!("{target_spec}-g++"));
@@ -76,12 +81,13 @@ impl GccCompiler {
     /// # Arguments
     /// * `exe_path` - The path to the executable for which to resolve DLL dependencies
     ///
-    pub fn resolve_dlls(exe_path: &PathBuf, verbose: &bool) {
+    pub fn resolve_dlls(exe_path: &PathBuf, verbose: &bool) -> Result<(), String> {
         let spbuild_root = match env::current_exe() {
             Ok(path) => path,
             Err(_) => {
-                Console::log_warning("Unable to determine current executable path; skipping DLL resolution.");
-                return;
+                let msg = "Unable to determine current executable path; skipping DLL resolution.";
+                Console::log_warning(msg);
+                return Err(msg.to_string());
             }
         };
 
@@ -89,14 +95,16 @@ impl GccCompiler {
         let cpdll_script_path = match spbuild_root.parent() {
             Some(parent) => parent.join("scripts").join("cpdll.py"),
             None => {
-                Console::log_warning("Could not determine scripts directory; skipping DLL resolution.");
-                return;
+                let msg = "Could not determine scripts directory; skipping DLL resolution.";
+                Console::log_warning(msg);
+                return Err(msg.to_string());
             }
         };
 
         if !cpdll_script_path.exists() {
-            Console::log_warning("cpdll.py script not found. You will need to copy DLLs yourself");
-            return;
+            let msg = "cpdll.py script not found. You will need to copy DLLs yourself";
+            Console::log_warning(msg);
+            return Err(msg.to_string());
         }
 
         Console::log_info("\n\n===> Running cpdll.py script for DLL dependency resolution...");
@@ -130,12 +138,17 @@ impl GccCompiler {
             Ok(output) => {
                 if output.status.success() {
                     Console::log_info("DLLs copied successfully.");
+                    Ok(())
                 } else {
-                    Console::log_error("cpdll.py script failed to execute. You will need to copy DLLs yourself");
+                    let msg = "cpdll.py script failed to execute. You will need to copy DLLs yourself";
+                    Console::log_error(msg);
+                    Err(msg.to_string())
                 }
             }
             Err(_) => {
-                Console::log_error("Failed to execute cpdll.py script. You will need to copy DLLs yourself");
+                let msg = "Failed to execute cpdll.py script. You will need to copy DLLs yourself";
+                Console::log_error(msg);
+                Err(msg.to_string())
             }
         }
     }

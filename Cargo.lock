@@ -200,7 +200,7 @@ dependencies = [
 
 [[package]]
 name = "spbuild"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "clap",
  "colored",
