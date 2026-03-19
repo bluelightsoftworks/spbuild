@@ -1,7 +1,7 @@
 [package]
 name = "spbuild"
 description = "The C++ Build system for singleplayer devs"
-version = "0.3.2"
+version = "0.3.3"
 edition = "2024"
 homepage = "https://github.com/bluelightsoftworks/spbuild"
 readme = "README.md"

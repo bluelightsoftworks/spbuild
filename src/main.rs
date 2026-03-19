@@ -159,13 +159,29 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
     // Compiles each project (but checks which ones are compiled tho)
     for project in &solution.projects {
 
+        if compiled_projects.iter().any(|n| n == &project.name) {
+            Console::log_info(format!("Project {} already compiled. Skipping.", project.name).as_str());
+            continue;
+        }
+
     // ===== COMPILATION  =====
 
         // Creates compiler for particular target
         let compiler = GccCompiler::new(target_arch.to_gcc_target_arch(), target_platform.to_gcc_target_platform());
 
+        // Target string for path resolution
+        let gcc_target_arch = target_arch.to_gcc_target_arch();
+        let gcc_target_platform = target_platform.to_gcc_target_platform();
+        let target_string = format!("{}-{}", gcc_target_platform, gcc_target_arch);
+
         // Resolve dependencies and include dirs.
-        let inputs = match resolve_project_build_inputs(project, &solution, &working_dir, args.verbose) {
+        let inputs =
+            match resolve_project_build_inputs(
+            project,
+            &solution,
+            &working_dir,
+            &target_string,
+            args.verbose) {
             Ok(v) => v,
             Err(e) => {
                 Console::log_fatal(format!("Error resolving dependencies: {}", e).as_str());
@@ -192,7 +208,6 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
             }
 
         // ===== LINKING  =====
-            //TODO: [URGENT] Implement the additional_static_libs setting in the config for linking
 
             let res = compiler.link_project(
                 dep,
@@ -249,12 +264,9 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
         // DLL resolution for windows targets
         if target_platform == Platform::Win && project.project_type == ProjectType::Executable {
 
-            let gcc_target_arch = target_arch.to_gcc_target_arch();
-            let gcc_target_platform = target_platform.to_gcc_target_platform();
-
             let abs_project_output_path = &working_dir
                 .join("output")
-                .join(format!("{}-{}", gcc_target_platform, gcc_target_arch)) // Target-specific output folder
+                .join(&target_string) // Target-specific output folder
                 .join(&project.path);
 
             abs_project_output_path
@@ -262,7 +274,10 @@ fn linux_build(args: Args, config_path: PathBuf, solution: Solution, target_arch
                 .map_err(|_| {"Project Output Path not found"}).unwrap();
             let abs_exe_path = abs_project_output_path.join(&project.name).with_extension("exe");
 
-            GccCompiler::resolve_dlls(&abs_exe_path, &args.verbose)
+            if let Err(e) = GccCompiler::resolve_dlls(&abs_exe_path, &args.verbose) {
+                Console::log_fatal(format!("Error resolved DLLs: {}", e).as_str());
+                return Err(());
+            }
         }
 
         compiled_projects.push(project.name.clone());
