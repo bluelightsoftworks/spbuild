@@ -1,3 +1,5 @@
+![Logo](logo.png)
+
 # Single Player Build System (spbuild)
 > The build system for singleplayer devs
 
