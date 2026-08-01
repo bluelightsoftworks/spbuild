@@ -123,7 +123,7 @@ pub struct ProjectBuildInputs {
     /// Directories that contain linkable outputs for local deps (currently: `.o` files).
     ///
     /// For a dependency at `<solution_root>/<dep.path>`, this is typically:
-    /// `<solution_root>/output/<dep.path>`.
+    /// `<solution_root>/output/<project.target>/<dep.path>`.
     pub dep_output_dirs: Vec<PathBuf>,
 }
 
@@ -172,6 +172,7 @@ pub fn resolve_project_build_inputs(
     project: &Project,
     solution: &Solution,
     solution_root: &PathBuf,
+    target_string: &String,
     verbose: bool,
 ) -> Result<ProjectBuildInputs, &'static str> {
     let local_deps_in_order = resolve_local_dependencies_in_order(project, solution);
@@ -209,10 +210,11 @@ pub fn resolve_project_build_inputs(
         }
         include_dirs.push(dep_root.unwrap());
 
-        // Dependency objects are placed in `<solution_root>/output/<dep.path>` by the compiler backend.
+        // Dependency objects are placed in `<solution_root>/output/<project.target>/<dep.path>` by the compiler backend.
         // Canonicalize so link inputs are absolute.
         let abs_dep_output_dir = solution_root
             .join("output")
+            .join(&target_string)
             .join(&dep.path)
             .canonicalize();
 
@@ -220,6 +222,7 @@ pub fn resolve_project_build_inputs(
             create_dir_all(
                 solution_root
                     .join("output")
+                    .join(&target_string)
                     .join(&dep.path)
             )
                 .map_err(|_| "Failed to create dependency output directory")?;
@@ -228,6 +231,7 @@ pub fn resolve_project_build_inputs(
         // checks if there is still an error after creating the directories
         let abs_dep_output_dir = solution_root
             .join("output")
+            .join(&target_string)
             .join(&dep.path)
             .canonicalize()
             .map_err(|_| "Failed to create dependency output directory")?;
