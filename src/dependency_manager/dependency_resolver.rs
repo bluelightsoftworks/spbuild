@@ -17,34 +17,40 @@ pub fn find_local_dependencies(project: &Project, solution: &Solution, verbose: 
     let mut found_deps: Vec<Project> = Vec::new();
 
     for dep in &project.dependencies {
-
-        let required_version = &dep.version;
-
-        // Checks each project for a matching name and version
-        solution.projects.iter().for_each(|p| {
-            if &project.name == &p.name {
-                // Skip self
-                return;
+        if let Some(local_dep) = solution.find_local_project_match(dep) {
+            if project.name == local_dep.name {
+                continue;
             }
 
-            // Also checks for version equality
-            Console::log_verbose(format!("Checking project {} version {} against dependency {} version {}", p.name, p.version, dep.name, dep.version).as_str(), verbose);
-            Console::log_verbose(format!("Result of name check: {}", p.name.eq(&dep.name)).as_str(), verbose);
-            Console::log_verbose(format!("Result of version check: {}", version_check(required_version, &p.version)).as_str(), verbose);
+            Console::log_verbose(
+                format!(
+                    "Checking dependency {} version {} => local match {} version {}",
+                    dep.name, dep.version, local_dep.name, local_dep.version
+                )
+                .as_str(),
+                verbose,
+            );
+            Console::log_verbose(
+                format!(
+                    "Result of version check: {}",
+                    version_check(&dep.version, &local_dep.version)
+                )
+                .as_str(),
+                verbose,
+            );
 
-            // Version_eq checks if version B satisfies the criteria of version A. Here it checks if p.version satisfies dep.version
-            if p.name.eq(&dep.name) && version_check(&dep.version, &p.version) {
-                Console::log_info(format!(
+            Console::log_info(
+                format!(
                     "Found local dependency: {} version {} at path {}",
-                    p.name,
-                    p.version,
-                    p.path.display()
-                ).as_str());
+                    local_dep.name,
+                    local_dep.version,
+                    local_dep.path.display()
+                )
+                .as_str(),
+            );
 
-
-                found_deps.push(p.clone());
-            }
-        });
+            found_deps.push(local_dep);
+        }
     }
 
     found_deps
@@ -60,7 +66,7 @@ pub fn find_local_dependencies(project: &Project, solution: &Solution, verbose: 
 /// # Returns
 /// * A boolean indicating whether a circular dependency exists.
 ///
-pub fn has_circular_dependency(project: &Project, solution: &Solution, visited: &mut Vec<String>) -> bool {
+pub fn has_circular_dependency(project: &Project, _solution: &Solution, visited: &mut Vec<String>) -> bool {
     if visited.contains(&project.name) {
         return true; // Circular dependency detected
     }
@@ -68,10 +74,12 @@ pub fn has_circular_dependency(project: &Project, solution: &Solution, visited: 
     visited.push(project.name.clone());
 
     for dep in &project.dependencies {
-        if let Some(dep_project) = solution.projects.iter().find(|p| p.name == dep.name) {
-            if has_circular_dependency(dep_project, solution, visited) {
-                return true;
-            }
+        let next = _solution
+            .find_local_project_match(dep)
+            .unwrap_or_else(|| dep.clone());
+
+        if has_circular_dependency(&next, _solution, visited) {
+            return true;
         }
     }
 
@@ -126,9 +134,9 @@ pub struct ProjectBuildInputs {
 /// - Missing local deps are ignored here (they may be external/system deps).
 pub fn resolve_local_dependencies_in_order(
     project: &Project,
-    solution: &Solution,
+    _solution: &Solution,
 ) -> Vec<Project> {
-    fn visit(current: &Project, solution: &Solution, out: &mut Vec<Project>, visiting: &mut Vec<String>) {
+    fn visit(current: &Project, _solution: &Solution, out: &mut Vec<Project>, visiting: &mut Vec<String>) {
         if visiting.contains(&current.name) {
             // Circular dependency should be checked earlier via has_circular_dependency.
             return;
@@ -136,17 +144,14 @@ pub fn resolve_local_dependencies_in_order(
         visiting.push(current.name.clone());
 
         for dep in &current.dependencies {
-            if let Some(dep_project) = solution.projects.iter().find(|p| p.name == dep.name) {
-                // Best-effort version check; if it doesn't match, treat as non-local.
-                if !version_check(&dep.version, &dep_project.version) {
-                    continue;
-                }
+            let resolved_dep = _solution
+                .find_local_project_match(dep)
+                .unwrap_or_else(|| dep.clone());
 
-                visit(dep_project, solution, out, visiting);
+            visit(&resolved_dep, _solution, out, visiting);
 
-                if !out.iter().any(|p| p.name == dep_project.name) {
-                    out.push(dep_project.clone());
-                }
+            if !out.iter().any(|p| p.name == resolved_dep.name && p.version == resolved_dep.version) {
+                out.push(resolved_dep);
             }
         }
 
@@ -155,7 +160,7 @@ pub fn resolve_local_dependencies_in_order(
 
     let mut out = Vec::new();
     let mut visiting = Vec::new();
-    visit(project, solution, &mut out, &mut visiting);
+    visit(project, _solution, &mut out, &mut visiting);
     out
 }
 

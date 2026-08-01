@@ -1,9 +1,9 @@
-
+use std::path::PathBuf;
 use target_lexicon::Triple;
 use which::which;
 
 use crate::linker_backends::common::LinkerBackend;
-use crate::linker_backends::gnu_backend;
+use crate::linker_backends::{gnu_backend, llvmmsvc_backend, llvmelf_backend, msvc_backend, apple_backend};
 
 pub enum LinkerKind {
     // For Linux, BSD & unix-like platforms
@@ -70,13 +70,18 @@ impl Linker {
         }
     }
 
+    pub fn link(&self, target: &str, files: &Vec<PathBuf>)
+    {
+        self.backend.link(&target.to_string(), &files, &vec![]);
+    }
+
     pub fn new(target: &str) -> Self {
         let linker_kind = Linker::detect_linker_kind(target).unwrap().0;
 
         let backend: Box<dyn LinkerBackend> = match linker_kind {
             LinkerKind::Gnu => Box::new(gnu_backend::GnuLinkerBackend::new()),
-            LinkerKind::LlvmElf => todo!(),
-            LinkerKind::Msvc => todo!(),
+            LinkerKind::LlvmElf => Box::new(llvmelf_backend::LLVMElfLinkerBackend::new()),
+            LinkerKind::Msvc => Box::new(msvc_backend::MSVCLinkerBackend::new()),
             LinkerKind::LlvmMsvc => todo!(),
             LinkerKind::Apple => todo!(),
         };

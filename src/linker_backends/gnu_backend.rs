@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use crate::linker_backends::common::LinkerBackend;
 
 pub struct GnuLinkerBackend;
@@ -10,4 +11,8 @@ impl GnuLinkerBackend {
     }
 }
 
-impl LinkerBackend for GnuLinkerBackend {}
+impl LinkerBackend for GnuLinkerBackend {
+    fn link(&self, target: &String, files: &Vec<PathBuf>, link_specific_options: &Vec<String>) {
+        todo!()
+    }
+}

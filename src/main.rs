@@ -165,6 +165,7 @@ fn main() {
     let config_path_string = args.solution_path.clone().unwrap_or_else(|| env::current_dir().unwrap().join("spbuild.json").display().to_string()) ;
 
     let mut config_path = PathBuf::from(&config_path_string);
+    let mut solution: Solution;
 
     Console::log_info("===== SPBuild Starting =====");
 
@@ -175,27 +176,25 @@ fn main() {
         }
     };
 
-    let config: Solution;
-
     // json config file support
     if config_path.extension().and_then(OsStr::to_str) == Some("json") {
-        config = parse_json_config(&config_path).map_err(|e| {
+        solution = parse_json_config(&config_path).map_err(|e| {
             Console::log_fatal(format!("Failed to parse config: {}", e).as_str());
-            Console::log_fatal("==== Aborting build ====");
+            Console::log_fatal("===== Aborting build =====");
         }).unwrap();
 
     // yaml config file support
     } else if config_path.extension().and_then(OsStr::to_str) == Some("yaml") || config_path.extension().and_then(OsStr::to_str) == Some("yml") {
-        config = config_parser::parse_yaml_config(&config_path).map_err(|e| {
+        solution = config_parser::parse_yaml_config(&config_path).map_err(|e| {
             Console::log_fatal(format!("Failed to parse config: {}", e).as_str());
-            Console::log_fatal("==== Aborting build ====");
+            Console::log_fatal("===== Aborting build =====");
         }).unwrap();
     } else {
 
     // Unsupported config file format
         Console::log_fatal(format!("Unsupported configuration file format: {}", config_path.display()).as_str());
         Console::log_fatal("Supported formats are .json, .yaml, and .yml");
-        Console::log_fatal("==== Aborting build ====");
+        Console::log_fatal("===== Aborting build =====");
         std::process::exit(1);
     }
 
@@ -258,12 +257,20 @@ fn main() {
 
 
     Console::log_info(format!("Building for {}-{}", &target_platform_string, &target_architecture_string).as_str());
+    let mut builder = builder::Builder::new(
+        &format!("{}-{}", &target_platform_string, &target_architecture_string),
+        target_architecture,
+        target_platform,
+    );
 
-    for project in &config.projects {
-        if has_circular_dependency(&project, &config, &mut Vec::new()) {
+    for project in &solution.projects {
+
+        if has_circular_dependency(project, &solution, &mut Vec::new()) {
             Console::log_fatal(format!("Circular dependency detected in project: {}", project.name).as_str());
             Console::log_fatal("==== Aborting build ====");
             return;
         }
     }
+
+    solution.build_compile_list();
 }

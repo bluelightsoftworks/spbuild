@@ -22,10 +22,12 @@ pub struct Builder {
     env_vars: HashMap<String, String>,
 
     target_str: String,
+    output_files_paths: Vec<PathBuf>,
 
     host_arch: Architecture,
     host_platform: Platform,
 
+    // Linker and compiler objects attached to the builder
     compiler: cc::Build,
     linker: Linker
 }
@@ -43,6 +45,7 @@ impl Builder {
             flags: vec![],
             env_vars: HashMap::new(),
             target_str: target.to_string(),
+            output_files_paths: vec![],
             host_arch,
             host_platform,
 
@@ -122,10 +125,18 @@ impl Builder {
             .includes(&self.additional_include_paths)
             .out_dir(output_path.canonicalize().unwrap());
 
+        // adds to the list of compiled files for the linker
+        for file in &self.files {
+            let name = file.file_name().unwrap().to_str().unwrap().to_string();
+            self.output_files_paths.push(output_path.join(name));
+        }
+
+        // Sets every environment variables
         for var in &self.env_vars {
             self.compiler.env(var.0, var.1);
         }
 
+        // Sets every define for the preprocessor
         for define in &self.defines {
             self.compiler.define(&define.0, Some(define.1.as_str()));
         }
@@ -167,10 +178,5 @@ impl Builder {
 
         // compiles the thing into a single file
         self.compiler.compile_intermediates();
-    }
-
-    /// Links the intermediary files into a final executable or library
-    pub fn link(&mut self) {
-        todo!()
     }
 }
