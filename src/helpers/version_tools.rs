@@ -109,11 +109,11 @@ fn greater_than(version_a: String, version_b: String) -> bool {
         .collect();
 
     // Not really elegant but it works
-    let a0 = *parts_a.get(0).unwrap_or(&0);
+    let a0 = *parts_a.first().unwrap_or(&0);
     let a1 = *parts_a.get(1).unwrap_or(&0);
     let a2 = *parts_a.get(2).unwrap_or(&0);
 
-    let b0 = *parts_b.get(0).unwrap_or(&0);
+    let b0 = *parts_b.first().unwrap_or(&0);
     let b1 = *parts_b.get(1).unwrap_or(&0);
     let b2 = *parts_b.get(2).unwrap_or(&0);
 

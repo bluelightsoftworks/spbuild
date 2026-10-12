@@ -1,22 +1,19 @@
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
-
-use cc;
+use serde_json::Value;
 use crate::linker::Linker;
 use crate::structs::target::{Architecture, Platform};
 
-pub enum StdVersion {
-    CPP14,
-    CPP17,
-    CPP20,
-}
+use crate::enums::CppVersion;
+use crate::helpers::file_tools::create_directory_if_not_exists;
+use crate::structs::solution::ProjectType;
 
 pub struct Builder {
     additional_include_paths: Vec<PathBuf>,
     files: Vec<PathBuf>,
     defines: HashMap<String, String>,
 
-    std_version: StdVersion,
+    cpp_version: CppVersion,
     warning_level: usize, // 0, (1), 2 or 3 (nothing, standard warnings, extra warnings or warnings as errors)
     flags: Vec<String>,
     env_vars: HashMap<String, String>,
@@ -24,8 +21,8 @@ pub struct Builder {
     target_str: String,
     output_files_paths: Vec<PathBuf>,
 
-    host_arch: Architecture,
-    host_platform: Platform,
+    host_triplet: String,
+    project_type: ProjectType,
 
     // Linker and compiler objects attached to the builder
     compiler: cc::Build,
@@ -34,23 +31,23 @@ pub struct Builder {
 
 impl Builder {
 
-    pub fn new(target: &str, host_arch: Architecture, host_platform: Platform) -> Self {
+    pub fn new(target: &str, host_triplet: &String, project_type: &ProjectType) -> Self {
         Builder
         {
             additional_include_paths: vec![],
             files: vec![],
             defines: HashMap::new(),
-            std_version: StdVersion::CPP20, // Assumes newest version if not specified
+            cpp_version: CppVersion::CPP20, // Assumes newest version if not specified
             warning_level: 1, // Default
             flags: vec![],
             env_vars: HashMap::new(),
             target_str: target.to_string(),
             output_files_paths: vec![],
-            host_arch,
-            host_platform,
+            host_triplet: host_triplet.clone(),
+            project_type: project_type.clone(),
 
             compiler: cc::Build::new(),
-            linker: Linker::new(&target)
+            linker: Linker::new(target).unwrap_or_else(|_| panic!("No supported linker found for target: {}", target)),
         }
     }
 
@@ -66,8 +63,15 @@ impl Builder {
     }
 
     /// Sets the version of the std lib that should be used for compilation
-    pub fn set_std_version(&mut self, std_version: StdVersion) {
-        self.std_version = std_version;
+    pub fn set_cpp_version(&mut self, cpp_version: &CppVersion) {
+        self.cpp_version = cpp_version.clone();
+    }
+
+    /// Sets the version of the standard library (libc++, libstdc++, libstdc++_shared, etc...).
+    /// Defaults should be libc++ for targets MacOS and Free/OpenBSD and libstdc++ for everything else
+    /// Setting this is optional
+    pub fn set_stdlib(&mut self, stdlib: String) {
+        self.compiler.cpp_link_stdlib(&*stdlib);
     }
 
     /// Sets the warning level:
@@ -87,7 +91,7 @@ impl Builder {
     }
 
     /// Sets a define value for the preprocessor
-    pub fn set_define(&mut self, define: String, value: String) {
+    pub fn add_define(&mut self, define: String, value: String) {
         // check if the Hashmap already got that define set
         if self.defines.contains_key(&define) {
             self.defines.remove(&define);
@@ -99,14 +103,14 @@ impl Builder {
     }
 
     /// Sets an environment variable for the compiler
-    pub fn set_env_var(&mut self, var: String, value: String) {
+    pub fn set_env_var(&mut self, var: &str, value: &str) {
         // check if the Hashmap already got that env var set
-        if self.env_vars.contains_key(&var) {
-            self.env_vars.remove(&var);
-            self.env_vars.insert(var, value);
+        if self.env_vars.contains_key(var) {
+            self.env_vars.remove(var);
+            self.env_vars.insert(var.to_string(), value.to_string());
         }
         else {
-            self.env_vars.insert(var, value);
+            self.env_vars.insert(var.to_string(), value.to_string());
         }
     }
 
@@ -116,14 +120,19 @@ impl Builder {
     }
 
     /// Compiles files into intermediary files. Doesn't link them
-    pub fn compile(&mut self, output_path: &Path) {
+    pub fn build(&mut self, output_path: &Path) -> Result<(), String> {
+
+        let outdir = output_path;
+        create_directory_if_not_exists(&outdir).unwrap_or_else(|_| panic!("Failed to create output directory: {}", &outdir.display()));
 
         self.compiler
             .target(&self.target_str)
+            .opt_level(0)
+            .host(&self.host_triplet)
             .flags(&self.flags)
             .files(&self.files)
             .includes(&self.additional_include_paths)
-            .out_dir(output_path.canonicalize().unwrap());
+            .out_dir(outdir.canonicalize().unwrap());
 
         // adds to the list of compiled files for the linker
         for file in &self.files {
@@ -138,7 +147,7 @@ impl Builder {
 
         // Sets every define for the preprocessor
         for define in &self.defines {
-            self.compiler.define(&define.0, Some(define.1.as_str()));
+            self.compiler.define(define.0, Some(define.1.as_str()));
         }
 
         match self.warning_level {
@@ -161,22 +170,29 @@ impl Builder {
             }
         }
 
-        match self.std_version {
-            StdVersion::CPP20 => {
+        match self.cpp_version {
+            CppVersion::CPP20 => {
                 self.compiler.cpp(true);
                 self.compiler.std("c++20");
             },
-            StdVersion::CPP17 => {
+            CppVersion::CPP17 => {
                 self.compiler.cpp(true);
                 self.compiler.std("c++17");
             },
-            StdVersion::CPP14 => {
+            CppVersion::CPP14 => {
                 self.compiler.cpp(true);
                 self.compiler.std("c++14");
-            },
+            }
         }
 
         // compiles the thing into a single file
-        self.compiler.compile_intermediates();
+        let compile_result = self.compiler.compile_intermediates();
+
+        if self.project_type == ProjectType::Executable {
+            // links everything if target is executable
+            self.linker.link(&self.target_str, self.output_files_paths.clone());
+        }
+
+        Ok(())
     }
 }

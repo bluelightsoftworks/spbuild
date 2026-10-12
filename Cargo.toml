@@ -12,6 +12,10 @@ categories = [
     "development-tools",
 ]
 
+[[bin]]
+name = "sp"
+path = "src/main.rs"
+
 [dependencies]
 cc = { version = "1.2.62", features = ["parallel"] }
 clap = { version = "4.5.53", features = ["derive"] }
@@ -23,4 +27,5 @@ strum_macros = "0.28.0"
 target-lexicon = { version = "0.13.5", features = ["serde"] }
 which = "8.0.2"
 twox-hash = "2.1.2"
-serde-saphyr = "0.0.26"
+serde-saphyr = "1.0.0"
+serde_repr = "0.1.21"

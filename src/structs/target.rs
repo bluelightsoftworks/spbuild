@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use std::fmt;
+use std::env;
 use serde::Deserialize;
 use serde::de::Deserializer;
 use strum_macros::EnumString;
@@ -110,6 +111,36 @@ pub struct Target{
     pub platform: Platform,
 }
 
+impl Target {
+    pub fn to_triple(&self) -> String {
+        match self.platform {
+            Platform::Win => format!("{}-pc-windows-msvc", self.architecture),
+            Platform::Linux => format!("{}-unknown-linux-gnu", self.architecture),
+            Platform::MacOS252 => format!("{}-apple-darwin", self.architecture),
+            Platform::Unknown => format!("{}-unknown-unknown", self.architecture),
+        }
+    }
+
+    pub fn current_host_triple() -> Result<String, String> {
+        let current_platform = env::consts::OS;
+        let current_architecture = env::consts::ARCH;
+
+        let normalized_platform = match current_platform {
+            "windows" => "win",
+            other => other,
+        };
+
+        let platform = Platform::new(normalized_platform)?;
+        let architecture = Architecture::new(current_architecture)?;
+
+        Ok(Target {
+            architecture,
+            platform,
+        }
+        .to_triple())
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum TargetInput {
@@ -203,5 +234,22 @@ mod tests {
 
         assert_eq!(target.architecture, Architecture::X64);
         assert_eq!(target.platform, Platform::Win);
+    }
+
+    #[test]
+    fn target_to_triple_uses_platform_specific_format() {
+        let linux = Target {
+            architecture: Architecture::X64,
+            platform: Platform::Linux,
+        };
+
+        assert_eq!(linux.to_triple(), "x86_64-unknown-linux-gnu");
+
+        let windows = Target {
+            architecture: Architecture::X64,
+            platform: Platform::Win,
+        };
+
+        assert_eq!(windows.to_triple(), "x86_64-pc-windows-msvc");
     }
 }

@@ -3,25 +3,18 @@ use target_lexicon::Triple;
 use which::which;
 
 use crate::linker_backends::common::LinkerBackend;
-use crate::linker_backends::{gnu_backend, llvmmsvc_backend, llvmelf_backend, msvc_backend, apple_backend};
+use crate::linker_backends::{unix_backend, msvc_backend};
 
 pub enum LinkerKind {
     // For Linux, BSD & unix-like platforms
     // Typical linker: ld.bfd, Gnu Gold linker, lld, mold...
     // Invoked via g++ or clang++
-    Gnu,
-    LlvmElf,
+    Unix,
 
     // For Windows platforms
     // Typical linker: MSVC's link.exe, lld-link...
     // Invoked via cl.exe or clang-cl.exe
     Msvc,
-    LlvmMsvc,
-
-    // For Apple platforms
-    // Typical linker: ld64, ld64.lld...
-    // Invoked via clang++
-    Apple,
 }
 
 pub struct Linker {
@@ -39,30 +32,28 @@ impl Linker {
             "windows" => {
                 if which("link.exe").is_ok() {
                     Some((LinkerKind::Msvc, "link.exe".into()))
-                } else if which("lld-link").is_ok() {
-                    Some((LinkerKind::LlvmMsvc, "lld-link".into()))
                 } else {
                     None
                 }
             }
             "macos" | "ios" | "tvos" | "watchos" => {
                 if which("clang++").is_ok() {
-                    Some((LinkerKind::Apple, "clang++".into()))
+                    Some((LinkerKind::Unix, "clang++".into()))
                 } else if which("ld64").is_ok() {
-                    Some((LinkerKind::Apple, "ld64".into()))
+                    Some((LinkerKind::Unix, "ld64".into()))
                 } else {
                     None
                 }
             }
             _ => {
                 if which("mold").is_ok() {
-                    Some((LinkerKind::Gnu, "mold".into()))
-                } else if which("ld.lld").is_ok() {
-                    Some((LinkerKind::LlvmElf, "ld.lld".into()))
+                    Some((LinkerKind::Unix, "mold".into()))
                 } else if which("gold").is_ok() {
-                    Some((LinkerKind::Gnu, "gold".into()))
+                    Some((LinkerKind::Unix, "gold".into()))
                 } else if which("ld.bfd").is_ok() {
-                    Some((LinkerKind::Gnu, "ld.bfd".into()))
+                    Some((LinkerKind::Unix, "ld.bfd".into()))
+                } else if which("ld").is_ok() {
+                    Some((LinkerKind::Unix, "ld".into()))
                 } else {
                     None
                 }
@@ -70,25 +61,20 @@ impl Linker {
         }
     }
 
-    pub fn link(&self, target: &str, files: &Vec<PathBuf>)
+    pub fn link(&self, target: &str, files: Vec<PathBuf>)
     {
-        self.backend.link(&target.to_string(), &files, &vec![]);
+        self.backend.link(target, files, vec![]);
     }
 
-    pub fn new(target: &str) -> Self {
-        let linker_kind = Linker::detect_linker_kind(target).unwrap().0;
+    pub fn new(target: &str) -> Result<Self, String> {
+        let (linker_kind, _) = Linker::detect_linker_kind(target)
+            .ok_or_else(|| format!("No supported linker found for target: {}", target))?;
 
         let backend: Box<dyn LinkerBackend> = match linker_kind {
-            LinkerKind::Gnu => Box::new(gnu_backend::GnuLinkerBackend::new()),
-            LinkerKind::LlvmElf => Box::new(llvmelf_backend::LLVMElfLinkerBackend::new()),
+            LinkerKind::Unix => Box::new(unix_backend::GnuLinkerBackend::new()),
             LinkerKind::Msvc => Box::new(msvc_backend::MSVCLinkerBackend::new()),
-            LinkerKind::LlvmMsvc => todo!(),
-            LinkerKind::Apple => todo!(),
         };
 
-        Linker {
-            kind: linker_kind,
-            backend,
-        }
+        Ok(Linker { kind: linker_kind, backend })
     }
 }

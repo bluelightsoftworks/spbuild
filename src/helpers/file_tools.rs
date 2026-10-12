@@ -1,32 +1,28 @@
 use std::path::{Path, PathBuf};
 use std::{fs, io};
 
-fn _list_files(vec: &mut Vec<PathBuf>, path: &Path) -> io::Result<()> {
+fn collect_files_recursive(files: &mut Vec<PathBuf>, path: &Path) -> io::Result<()> {
     if path.is_dir() {
         for entry in fs::read_dir(path)? {
-            let full_path = entry?.path();
-            _list_files(vec, &full_path)?;
+            let entry = entry?;
+            let full_path = entry.path();
+            collect_files_recursive(files, &full_path)?;
         }
     } else if path.is_file() {
-        vec.push(path.to_path_buf());
+        files.push(path.to_path_buf());
     }
     Ok(())
 }
 
-pub fn list_files(root: &PathBuf) -> io::Result<Vec<PathBuf>> {
-    let mut abs_files = Vec::new();
-    _list_files(&mut abs_files, root)?;
+pub fn list_files(root: &Path) -> io::Result<Vec<PathBuf>> {
+    // Canonicalize the root path to resolve any relative prefixes (like "./")
+    // and symlinks, ensuring a clean absolute base path.
+    let canonical_root = root.canonicalize()?;
 
-    // Convert to paths relative to `root` so callers can safely join(root, rel).
-    let mut rel_files = Vec::with_capacity(abs_files.len());
-    for p in abs_files {
-        match p.strip_prefix(root) {
-            Ok(rel) => rel_files.push(rel.to_path_buf()),
-            Err(_) => rel_files.push(p),
-        }
-    }
+    let mut absolute_files = Vec::new();
+    collect_files_recursive(&mut absolute_files, &canonical_root)?;
 
-    Ok(rel_files)
+    Ok(absolute_files)
 }
 
 ///
@@ -38,7 +34,7 @@ pub fn list_files(root: &PathBuf) -> io::Result<Vec<PathBuf>> {
 /// # Returns
 /// * A vector of PathBuf containing the full paths to the found object files.
 ///
-pub fn find_object_files(files: &Vec<PathBuf>, path: &PathBuf) -> Vec<PathBuf> {
+pub fn find_object_files(files: &Vec<PathBuf>, path: &Path) -> Vec<PathBuf> {
     let mut found_object_files: Vec<PathBuf> = Vec::new();
 
     for file in files {
@@ -50,4 +46,11 @@ pub fn find_object_files(files: &Vec<PathBuf>, path: &PathBuf) -> Vec<PathBuf> {
     }
 
     found_object_files
+}
+
+pub fn create_directory_if_not_exists(path: &Path) -> io::Result<()> {
+    if !path.exists() {
+        fs::create_dir_all(path)?;
+    }
+    Ok(())
 }

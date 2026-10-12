@@ -32,10 +32,4 @@ impl Console {
                   "[ERROR]".red(),
                   message);
     }
-
-    pub fn log_fatal(message: &str) {
-        eprintln!("{} > {}",
-                  "[FATAL]".bold().red(),
-                  message);
-    }
 }

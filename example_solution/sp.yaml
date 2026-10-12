@@ -1,27 +1,32 @@
 name: ExampleSolution
+version: 1.0.0
 projects:
     - name: ProjectAlpha
       version: 1.0.0
       type: Executable
+      cpp_version: 17
       targets:
         - x86_64-pc-windows-gnu
         - x86_64-unknown-linux-gnu
       path: ./alpha/
+      exclude: []
       dependencies:
         - name: ProjectBeta
           version: ^2.0.0
-        - name: libraryB
-          version: ~1.5.0
+        #- name: libraryB        # just an example of a dependency with another version constraint
+        #  version: ~1.5.0
       additional_includes: []
       additional_static_libs: []
 
     - name: ProjectBeta
       version: 2.1.0
       type: StaticLibrary
+      cpp_version: 20
       targets:
         - x86_64-pc-windows-gnu
         - x86_64-unknown-linux-gnu
       path: ./beta/
+      exclude: []
       dependencies: []
       additional_includes: []
       additional_static_libs: []

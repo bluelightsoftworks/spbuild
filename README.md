@@ -28,6 +28,8 @@ If you also want to target different architectures, you will need to install the
 - For 32-bit targets, install `gcc-multilib` and `gcc-libc` (on Arch, `sudo pacman -S lib32-gcc-libc lib32-glibc`)
 - For RISC-V targets, install `riscv64-elf-gcc` (on Arch, `sudo yay -S riscv64-elf-gcc`)
 
+CUDA C++ compilation is not supported yet and currently not planned to be.
+
 ## Naming
 - Project : A single target for the compiler (executable, library, etc.)
   - Project's output directory : The directory where the compiled files of a single project are stored
@@ -37,19 +39,20 @@ If you also want to target different architectures, you will need to install the
 - Dependency : A project that another project depends on to compile
   - Local dependency : A dependency that is part of the same solution
   - External dependency : A dependency that is not part of the same solution (can be from the package manager)
-- Additional `x`: Anything that is not part of the project dependencies but is still needed to compile the project
-- (ex: additional include directories, additional static libraries, etc.)
+- Additional `x`: Anything that is not part of the solution but is still needed to compile the project 
+  (ex: additional include directories, additional static libraries, etc.)
 
 ### Project configuration file options
 - `name` : Name of the project. Can be any string
 - `version`: Version of the project. Can be any string
-- `project_type`: Type of the project. Can be one of the following:
+- `type`: Type of the project. Can be one of the following:
   - `Executable`: A standalone application
-  - `StaticLib`: A static library that can be linked to other projects
-  - `DynamicLib`: A dynamic library (like DLLs on Windows)
+  - `StaticLibrary`: A static library that can be linked to other projects
+  - `DynamicLibrary`: A dynamic library (like DLLs on Windows)
 - `targets`: All the targets the project can compile to. Check out the `PossibleTargets.md` file to know all the
     possible values for this field
 - `path`: The path to the project folder (relative to the solution root)
+- `exclude`: List of files or directories to exclude from the project (to not compile) relating to the project path.
 - `dependencies`: List of other projects that this project depends on (by name). If a dependency is not found in
     the solution, spbuild will look for it in the package manager (not implemented yet)
   - Each dependency is an object with the following properties:
@@ -77,10 +80,10 @@ python <path_to_cpdll.py> <path_to_exe>
     - [ ] Cross compile (Windows -> Linux)
   - [x] Compile with GCC
     - [x] Single project solution
-    - [x] Link
+    - [ ] Link
     - [x] Multi project solution
-    - [x] Link
-    - [x] Cross compile (Linux -> Windows)
+    - [ ] Link
+    - [ ] Cross compile (Linux -> Windows)
 - [ ] Incremental build support
 - [ ] Dependency and package manager (definitely)
 
@@ -92,9 +95,9 @@ python <path_to_cpdll.py> <path_to_exe>
   - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling) <- Cargo publishing <- Latest <- Dev branch
 - 0.4.0: Switch to cc crate
   - 0.4.1: More compiler support (Clang, MSVC)
-  - 0.4.2: CLI Rework (`spbuild build`, `spbuild init`...) <- First Prerelease
+  - 0.4.2: CLI Rework (`sp build`, `sp init`...) <- First Prerelease
+- 0.6.0: Customizable targets
 - 0.5.0: Incremental build support
-- 0.6.0: Cleanup, refactor, documentation
 - 0.7.0: Package manager and external dependencies
 - 0.8.0: Testing, bug fixing...
 - 0.9.0: Final Polish, prepare for release
