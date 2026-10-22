@@ -209,6 +209,13 @@ impl Compiler for GccCompiler {
         _verbose: bool,
     ) -> Result<(), &'static str> {
 
+        if abs_infile_path.extension().unwrap() == "h" || abs_infile_path.extension().unwrap() == "hpp" {
+            Console::log_verbose(&format!("Skipping header file: {}", abs_infile_path.display()), _verbose);
+            return Ok(());
+        }
+
+        Console::log_info(&format!("Compiling source file: {}", abs_infile_path.display()));
+
         // Checks for edge cases I don't even know if they can happen
         let last_component_abs_output_dir = abs_infile_path.components().last();
         if last_component_abs_output_dir.is_none() {
@@ -294,6 +301,11 @@ impl Compiler for GccCompiler {
 
         let files = list_files(&source_dir).map_err(|_| "Failed to list source files")?;
 
+
+        // The output directory is structured as `<solution_root>/output/<platform>-<arch>/<project_path>`.
+        // Todo: move everything to a build directory instead of output, and have output be the final artifacts.
+
+
         let rel_output_dir = &abs_solution_root
             .join("output")
             .join(format!("{}-{}", &self.t_platform, &self.t_arch))
@@ -318,7 +330,7 @@ impl Compiler for GccCompiler {
                 .canonicalize()
                 .map_err(|_| "Failed to canonicalize path. The file likely doesn't exist")?;
 
-            Console::log_info(&format!("Compiling source file: {}", &rel));
+
             self.compile_file(
                 &abs_source_file,
                 &abs_output_dir,
