@@ -16,7 +16,7 @@ pub fn parse_config(path: &Path) -> Result<Solution, String> {
     let contents = read_to_string(path)
         .map_err(|e| format!("Failed to read config file `{}': {}", path.display(), e))?;
 
-    let solution: Solution = serde_json::from_str(&contents)
+    let solution: Solution = serde_yaml::from_str(&contents)
         .map_err(|e| format!("Failed to parse config file `{}': {}", path.display(), e))?;
 
     Ok(solution)

@@ -12,11 +12,15 @@ categories = [
     "development-tools",
 ]
 
+[[bin]]
+name = "sp"
+path = "src/main.rs"
+
 [dependencies]
 clap = { version = "4.5.53", features = ["derive"] }
 colored = "3.0.0"
 serde = { version = "1.0.228", features = ["derive"] }
-serde_json = "1.0.145"
+serde_yaml = "0.9.34"
 strum = "0.28.0"
 strum_macros = "0.28.0"
 # Will be used for later releases twox-hash = "2.1.2"

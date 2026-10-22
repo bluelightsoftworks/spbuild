@@ -100,3 +100,14 @@ impl Platform {
         }
     }
 }
+
+impl PartialEq<Platform> for &Platform {
+    fn eq(&self, other: &Platform) -> bool {
+        match (self, other) {
+            (Platform::Win, Platform::Win) => true,
+            (Platform::Linux, Platform::Linux) => true,
+            (Platform::MacOS252, Platform::MacOS252) => true,
+            _ => false,
+        }
+    }
+}

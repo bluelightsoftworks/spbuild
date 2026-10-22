@@ -1,0 +1,35 @@
+name: ExampleSolution
+version: 1.0.0
+projects:
+  - name: ProjectAlpha
+    version: 1.0.0
+    project_type: Executable
+    cpp_version: 17
+    target_platforms:
+      - win
+      - linux
+    target_archs:
+      - x86_64
+      - x86
+    path: ./alpha/
+    dependencies:
+      - name: ProjectBeta
+        version: ^2.0.0
+      #- name: libraryB        # just an example of a dependency with another version constraint
+      #  version: ~1.5.0
+    additional_includes: []
+    additional_static_libs: []
+
+  - name: ProjectBeta
+    version: 2.1.0
+    project_type: StaticLib
+    cpp_version: 20
+    target_platforms:
+      - win
+      - linux
+    target_archs:
+      - x86_64
+    path: ./beta/
+    dependencies: []
+    additional_includes: []
+    additional_static_libs: []
