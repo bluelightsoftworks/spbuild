@@ -12,6 +12,7 @@ pub struct Builder {
     additional_include_paths: Vec<PathBuf>,
     files: Vec<PathBuf>,
     defines: HashMap<String, String>,
+    dependencies_compiled_files: Vec<PathBuf>,
 
     cpp_version: CppVersion,
     warning_level: usize, // 0, (1), 2 or 3 (nothing, standard warnings, extra warnings or warnings as errors)
@@ -36,6 +37,7 @@ impl Builder {
         {
             additional_include_paths: vec![],
             files: vec![],
+            dependencies_compiled_files: vec![],
             defines: HashMap::new(),
             cpp_version: CppVersion::CPP20, // Assumes newest version if not specified
             warning_level: 1, // Default
@@ -55,6 +57,12 @@ impl Builder {
     pub fn add_file(&mut self, file_path: &Path)
     {
         self.files.push(file_path.to_path_buf());
+    }
+
+    /// Adds a new file to the list of compiled files from dependencies
+    pub fn add_dependency_compiled_file(&mut self, file_path: &Path)
+    {
+        self.dependencies_compiled_files.push(file_path.to_path_buf());
     }
 
     /// Adds a new directory to include from
@@ -126,6 +134,7 @@ impl Builder {
         create_directory_if_not_exists(&outdir).unwrap_or_else(|_| panic!("Failed to create output directory: {}", &outdir.display()));
 
         self.compiler
+            .cpp(true)
             .target(&self.target_str)
             .opt_level(0)
             .host(&self.host_triplet)
@@ -136,7 +145,7 @@ impl Builder {
 
         // adds to the list of compiled files for the linker
         for file in &self.files {
-            let name = file.file_name().unwrap().to_str().unwrap().to_string();
+            let name = file.file_prefix().unwrap().to_str().unwrap().to_string() + ".o";
             self.output_files_paths.push(output_path.join(name));
         }
 
@@ -186,11 +195,11 @@ impl Builder {
         }
 
         // compiles the thing into a single file
-        let compile_result = self.compiler.compile_intermediates();
+        let compiled_result = self.compiler.compile_intermediates();
 
         if self.project_type == ProjectType::Executable {
             // links everything if target is executable
-            self.linker.link(&self.target_str, self.output_files_paths.clone());
+            self.linker.link(&self.target_str, compiled_result);
         }
 
         Ok(())

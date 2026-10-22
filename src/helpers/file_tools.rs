@@ -54,3 +54,7 @@ pub fn create_directory_if_not_exists(path: &Path) -> io::Result<()> {
     }
     Ok(())
 }
+
+pub fn check_file_exists(path: &Path) -> bool {
+    path.exists() && path.is_file()
+}
