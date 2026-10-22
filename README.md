@@ -1,3 +1,5 @@
+![Logo](logo.png)
+
 # Single Player Build System (spbuild)
 > The build system for singleplayer devs
 
@@ -99,7 +101,8 @@ python <path_to_cpdll.py> <path_to_exe>
   - 0.3.1: Bugfixes 
   - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling) <- Cargo publishing <- Latest <- Dev branch
 - 0.4: More compiler support (Clang, MSVC)
-  - 0.4.1: CLI Rework (`spbuild build`, `spbuild init`...) <- First Prerelease
+  - 0.4.1: Smarter compiler detection (better detect paths, versions, etc...)
+  - 0.4.2: CLI Rework (`spbuild build`, `spbuild init`...) <- First Prerelease
 - 0.5: Incremental build support
 - 0.6: Cleanup, refactor, documentation
 - 0.7: Package manager and external dependencies
