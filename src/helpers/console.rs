@@ -37,5 +37,6 @@ impl Console {
         eprintln!("{} > {}",
                   "[FATAL]".bold().red(),
                   message);
+        eprint!("\n");
     }
 }

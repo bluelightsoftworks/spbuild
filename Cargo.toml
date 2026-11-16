@@ -23,4 +23,5 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9.34"
 strum = "0.28.0"
 strum_macros = "0.28.0"
+log = "0.4.35"
 # Will be used for later releases twox-hash = "2.1.2"

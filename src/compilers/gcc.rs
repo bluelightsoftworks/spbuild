@@ -75,6 +75,7 @@ impl GccCompiler {
     }
 
 
+    //TODO: this will obviously not work for public use
     ///
     /// Resolves DLL dependencies for a Windows executable by running the `cpdll.py` script.
     /// This script is expected to be located at `./scripts/cpdll.py` and should handle copying the necessary DLLs to the executable's directory.

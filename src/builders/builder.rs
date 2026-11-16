@@ -135,7 +135,7 @@ impl GccBuilder {
         // Link current project.
         let mut link_inputs = inputs.dep_output_dirs.clone();
         // Keep the project's include dirs around as well in case the linker needs them later (e.g. for -L/-l).
-        // For now, gcc.rs interprets these as directories to scan for `.o` files.
+        // For now, gcc_builder interprets these as directories to scan for `.o` files.
         link_inputs.extend(inputs.include_dirs.clone());
 
         let res = &self.compiler.link_project(

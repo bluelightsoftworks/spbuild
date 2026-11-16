@@ -4,8 +4,7 @@
 > The build system for singleplayer devs
 
 ## About
-The goal of this project is to help little teams and solo devs configuring a multiplatform dev environment in a [WORA](https://en.wikipedia.org/wiki/Write_once,_run_anywhere)
-fashion. To use, you only need to run
+The goal of this project is to help little teams and solo devs configuring a dev environment easily. To run it, you only need to use:
 ```bash
 spbuild [OPTIONS]
 ```
@@ -21,14 +20,15 @@ If no options are passed, spbuild will try to build for the current platform and
 ## Compilation requirements
 ### Linux
 The default compiler for linux is GCC so you will need to install cross-compilers if you want to compile for other platforms.
-- For Windows targets, install `mingw-w64` and `peldd` (on Arch, `sudo yay -S mingw-w64 peldd`) 
-- For MacOS targets, cross compilation requires a bit more work and `osxcross`. Follow the instructions on their [GitHub page](https://github.com/tpoechtrager/osxcross)
-  for gcc. Please remember that MacOS compilation isn't planned to be supported in the near future.
 
 If you also want to target different architectures, you will need to install the appropriate cross-compilers.
 - For ARM targets, install `aarch64-linux-gnu-gcc` (on Arch, `sudo yay -S aarch64-linux-gnu-gcc`)
 - For 32-bit targets, install `gcc-multilib` and `gcc-libc` (on Arch, `sudo pacman -S lib32-gcc-libc lib32-glibc`)
 - For RISC-V targets, install `riscv64-elf-gcc` (on Arch, `sudo yay -S riscv64-elf-gcc`)
+
+### Other systems
+While multiplatform compilation is planned in the future, it is not implemented yet and you can only compile from linux 
+systems as of right now
 
 ## Naming
 - Project : A single target for the compiler (executable, library, etc.)
@@ -100,16 +100,14 @@ python <path_to_cpdll.py> <path_to_exe>
 - 0.3: Cross compilation support, target architectures, target platforms 
   - 0.3.1: Bugfixes 
   - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling) <- Cargo publishing <- Latest <- Dev branch
-- 0.4: More compiler support (Clang, MSVC)
-  - 0.4.1: Smarter compiler detection (better detect paths, versions, etc...)
-  - 0.4.2: CLI Rework (`spbuild build`, `spbuild init`...) <- First Prerelease
-- 0.5: Incremental build support
-- 0.6: Cleanup, refactor, documentation
-- 0.7: Package manager and external dependencies
-- 0.8: Testing, bug fixing...
-- 0.9: Final Polish, prepare for release
+- 0.4: CLI Rework (`spbuild build`, `spbuild init`...)
+- 0.5: Smarter compiler detection (better detect paths, versions, etc...) <- First Prerelease
+- 0.6: Incremental and parallel build support
+- 0.7: Cleanup, refactor, documentation
+- 0.8: Package manager and external dependencies
+- 0.9: Testing, bug fixing...
 
-- 1.0: Release!
+- 1.0: Final polish and Release!
 
 
-
+> Note: while Windows and MacOS support were planned, due to personal reasons, I am not able to implement them right now
