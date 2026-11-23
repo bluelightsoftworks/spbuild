@@ -1,9 +1,9 @@
-use std::str::FromStr;
+use serde::{Deserialize, Serialize};
 use std::fmt;
-use serde::Deserialize;
+use std::str::FromStr;
 use strum_macros::EnumString;
 
-#[derive(Deserialize, Clone, PartialEq, EnumString, Debug)]
+#[derive(Deserialize, Serialize, Clone, PartialEq, EnumString, Debug)]
 pub enum Architecture {
     #[serde(rename = "x86")]
     #[strum(serialize = "x86")]
@@ -23,7 +23,7 @@ pub enum Architecture {
 }
 
 //TODO: These may not be the right platforms.. Maybe we'll have to make this more precise
-#[derive(Deserialize, Debug, Clone, PartialEq, EnumString)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, EnumString)]
 pub enum Platform {
     #[serde(rename = "win")]
     #[serde(alias = "windows")]
@@ -54,10 +54,9 @@ impl fmt::Display for Architecture {
             Architecture::RISCV64 => write!(f, "riscv64"),
         }
     }
-
 }
 
-impl Architecture{
+impl Architecture {
     pub fn to_gcc_target_arch(&self) -> String {
         match self {
             Architecture::X86 => "i686".to_string(),
@@ -71,7 +70,8 @@ impl Architecture{
 
 impl Architecture {
     pub fn new(arch_str: &str) -> Result<Self, String> {
-        Architecture::from_str(arch_str).map_err(|_| format!("Unsupported architecture: {}", arch_str))
+        Architecture::from_str(arch_str)
+            .map_err(|_| format!("Unsupported architecture: {}", arch_str))
     }
 }
 
@@ -88,7 +88,8 @@ impl fmt::Display for Platform {
 
 impl Platform {
     pub fn new(platform_str: &str) -> Result<Self, String> {
-        Platform::from_str(platform_str).map_err(|_| format!("Unsupported platform: {}", platform_str))
+        Platform::from_str(platform_str)
+            .map_err(|_| format!("Unsupported platform: {}", platform_str))
     }
 
     pub fn to_gcc_target_platform(&self) -> String {

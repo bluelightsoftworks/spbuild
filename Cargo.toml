@@ -1,6 +1,6 @@
 [package]
 name = "spbuild"
-description = "The C++ Build system for singleplayer devs"
+description = "The c++ build system for singleplayer devs"
 version = "0.3.3"
 edition = "2024"
 homepage = "https://github.com/bluelightsoftworks/spbuild"
@@ -23,5 +23,6 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9.34"
 strum = "0.28.0"
 strum_macros = "0.28.0"
-log = "0.4.35"
+inquire = "0.9.5"
+pkg-config = "0.3.34"
 # Will be used for later releases twox-hash = "2.1.2"

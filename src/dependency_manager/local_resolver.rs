@@ -1,8 +1,8 @@
-use std::fs::create_dir_all;
-use std::path::PathBuf;
-use crate::solution::{Project, Solution};
 use crate::Console;
 use crate::helpers::version_tools::version_check;
+use crate::solution::{Project, Solution};
+use std::fs::create_dir_all;
+use std::path::{Path, PathBuf};
 
 ///
 /// Finds and prints local dependencies of a given project within the solution.
@@ -12,35 +12,52 @@ use crate::helpers::version_tools::version_check;
 /// # Returns
 /// * A Vec<project> object representing the resolved local dependencies.
 ///
-pub fn find_local_dependencies(project: &Project, solution: &Solution, verbose: bool) -> Vec<Project> {
-
+pub fn find_local_deps(project: &Project, solution: &Solution, verbose: bool) -> Vec<Project> {
     let mut found_deps: Vec<Project> = Vec::new();
 
     for dep in &project.dependencies {
-
         let required_version = &dep.version;
 
         // Checks each project for a matching name and version
         solution.projects.iter().for_each(|p| {
-            if &project.name == &p.name {
+            if project.name == p.name {
                 // Skip self
                 return;
             }
 
             // Also checks for version equality
-            Console::log_verbose(format!("Checking project {} version {} against dependency {} version {}", p.name, p.version, dep.name, dep.version).as_str(), verbose);
-            Console::log_verbose(format!("Result of name check: {}", p.name.eq(&dep.name)).as_str(), verbose);
-            Console::log_verbose(format!("Result of version check: {}", version_check(required_version, &p.version)).as_str(), verbose);
+            Console::log_verbose(
+                format!(
+                    "Checking project {} version {} against dependency {} version {}",
+                    p.name, p.version, dep.name, dep.version
+                )
+                .as_str(),
+                verbose,
+            );
+            Console::log_verbose(
+                format!("Result of name check: {}", p.name.eq(&dep.name)).as_str(),
+                verbose,
+            );
+            Console::log_verbose(
+                format!(
+                    "Result of version check: {}",
+                    version_check(required_version, &p.version)
+                )
+                .as_str(),
+                verbose,
+            );
 
             // Version_eq checks if version B satisfies the criteria of version A. Here it checks if p.version satisfies dep.version
             if p.name.eq(&dep.name) && version_check(&dep.version, &p.version) {
-                Console::log_info(format!(
-                    "Found local dependency: {} version {} at path {}",
-                    p.name,
-                    p.version,
-                    p.path.display()
-                ).as_str());
-
+                Console::log_info(
+                    format!(
+                        "Found local dependency: {} version {} at path {}",
+                        p.name,
+                        p.version,
+                        p.path.display()
+                    )
+                    .as_str(),
+                );
 
                 found_deps.push(p.clone());
             }
@@ -60,7 +77,11 @@ pub fn find_local_dependencies(project: &Project, solution: &Solution, verbose: 
 /// # Returns
 /// * A boolean indicating whether a circular dependency exists.
 ///
-pub fn has_circular_dependency(project: &Project, solution: &Solution, visited: &mut Vec<String>) -> bool {
+pub fn has_circular_dependency(
+    project: &Project,
+    solution: &Solution,
+    visited: &mut Vec<String>,
+) -> bool {
     if visited.contains(&project.name) {
         return true; // Circular dependency detected
     }
@@ -68,39 +89,15 @@ pub fn has_circular_dependency(project: &Project, solution: &Solution, visited: 
     visited.push(project.name.clone());
 
     for dep in &project.dependencies {
-        if let Some(dep_project) = solution.projects.iter().find(|p| p.name == dep.name) {
-            if has_circular_dependency(dep_project, solution, visited) {
-                return true;
-            }
+        if let Some(dep_project) = solution.projects.iter().find(|p| p.name == dep.name)
+            && has_circular_dependency(dep_project, solution, visited)
+        {
+            return true;
         }
     }
 
     visited.pop();
     false
-}
-
-pub fn find_headers_in_folder(folder: PathBuf) -> Vec<PathBuf> {
-
-    let mut header_paths: Vec<PathBuf> = Vec::new();
-
-    let files = crate::helpers::file_tools::list_files(&folder);
-
-    match files {
-        Ok(file_list) => {
-            for file in file_list {
-                if let Some(ext) = file.extension() {
-                    if ext == "h" || ext == "hpp" || ext == "hh" {
-                        header_paths.push(folder.join(&file));
-                    }
-                }
-            }
-        },
-        Err(e) => {
-            Console::log_error(format!("Error listing files in folder {}: {}", folder.display(), e).as_str());
-        }
-    }
-
-    header_paths
 }
 
 /// Build inputs computed for a single project.
@@ -121,14 +118,18 @@ pub struct ProjectBuildInputs {
 
 /// Resolves local (in-solution) dependencies in a dependency-first order.
 ///
+/// # Returns
+///
 /// Notes:
 /// - This is transitive: if A depends on B and B depends on C, the result for A is [C, B].
 /// - Missing local deps are ignored here (they may be external/system deps).
-pub fn resolve_local_dependencies_in_order(
-    project: &Project,
-    solution: &Solution,
-) -> Vec<Project> {
-    fn visit(current: &Project, solution: &Solution, out: &mut Vec<Project>, visiting: &mut Vec<String>) {
+pub fn resolve_local_deps(project: &Project, solution: &Solution) -> Vec<Project> {
+    fn visit(
+        current: &Project,
+        solution: &Solution,
+        out: &mut Vec<Project>,
+        visiting: &mut Vec<String>,
+    ) {
         if visiting.contains(&current.name) {
             // Circular dependency should be checked earlier via has_circular_dependency.
             return;
@@ -163,14 +164,17 @@ pub fn resolve_local_dependencies_in_order(
 ///
 /// - Validates that `project.additional_includes` exist relative to `<solution_root>/<project.path>`.
 /// - Adds each local dependency's project root as an include directory.
-pub fn resolve_project_build_inputs(
+///
+/// # Returns
+/// A ProjectBuildInputs struct
+pub fn resolve_additional_includes(
     project: &Project,
     solution: &Solution,
-    solution_root: &PathBuf,
+    solution_root: &Path,
     target_string: &String,
     verbose: bool,
 ) -> Result<ProjectBuildInputs, &'static str> {
-    let local_deps_in_order = resolve_local_dependencies_in_order(project, solution);
+    let local_deps_in_order = resolve_local_deps(project, solution);
 
     let mut include_dirs: Vec<PathBuf> = Vec::new();
     let mut dep_output_dirs: Vec<PathBuf> = Vec::new();
@@ -185,7 +189,11 @@ pub fn resolve_project_build_inputs(
 
         if !abs_inc_path.exists() {
             Console::log_fatal(
-                format!("Additional include path does not exist: {}", abs_inc_path.display()).as_str(),
+                format!(
+                    "Additional include path does not exist: {}",
+                    abs_inc_path.display()
+                )
+                .as_str(),
             );
             return Err("Failed to add additional include path");
         }
@@ -195,12 +203,9 @@ pub fn resolve_project_build_inputs(
 
     // Local dependency roots as include dirs + dependency output dirs for linking
     for dep in &local_deps_in_order {
-        let dep_root = solution_root
-            .join(&dep.path)
-            .canonicalize();
+        let dep_root = solution_root.join(&dep.path).canonicalize();
 
-
-        if dep_root.is_err(){
+        if dep_root.is_err() {
             Console::log_fatal("Failed to locate dependency source directory");
         }
         include_dirs.push(dep_root.unwrap());
@@ -208,7 +213,7 @@ pub fn resolve_project_build_inputs(
         // Dependency objects are placed in `<solution_root>/output/<project.target>/<dep.path>` by the compiler backend.
         // Canonicalize so link inputs are absolute.
         let abs_dep_output_dir = solution_root
-            .join("output")
+            .join("build")
             .join(&target_string)
             .join(&dep.path)
             .canonicalize();
@@ -216,16 +221,16 @@ pub fn resolve_project_build_inputs(
         if abs_dep_output_dir.is_err() {
             create_dir_all(
                 solution_root
-                    .join("output")
+                    .join("build")
                     .join(&target_string)
-                    .join(&dep.path)
+                    .join(&dep.path),
             )
-                .map_err(|_| "Failed to create dependency output directory")?;
+            .map_err(|_| "Failed to create dependency output directory")?;
         }
 
         // checks if there is still an error after creating the directories
         let abs_dep_output_dir = solution_root
-            .join("output")
+            .join("build")
             .join(&target_string)
             .join(&dep.path)
             .canonicalize()

@@ -1,8 +1,8 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::solution::{Project, Solution};
 
-// TRAITS DEFINITIONS
+/// This is relatively useless as of right now but will be useful once more compilers are added
 pub trait Compiler {
     ///
     /// Compiles a single source file.
@@ -13,17 +13,17 @@ pub trait Compiler {
     /// * `additional_includes` - Additional include directories.
     /// * `verbose` - Whether to enable verbose output.
     /// # Returns
-    /// * `Ok(())` if compilation is successful, otherwise an error message.
+    /// * The path of the object file generated if success, otherwise an error message.
     ///
     fn compile_file(
         &self,
         abs_infile_path: &PathBuf,
         abs_output_path: &PathBuf,
         // Target platform and architecture are managed at compiler level
+        project_path: &PathBuf,
         additional_includes: &Vec<PathBuf>,
-        verbose:bool)
-
-        -> Result<(), &'static str>;
+        verbose: bool,
+    ) -> Result<PathBuf, &'static str>;
 
     ///
     /// Compiles an entire project.
@@ -44,9 +44,8 @@ pub trait Compiler {
         project: &Project,
         solution_root: &PathBuf,
         additional_include_directories: Vec<PathBuf>,
-        verbose:bool
-    )
-        -> Result<(), &'static str>;
+        verbose: bool,
+    ) -> Result<(), &'static str>;
 
     ///
     /// Links the compiled object files of a project into a final executable or library.
@@ -67,20 +66,6 @@ pub trait Compiler {
         solution: &Solution,
         project_path: &PathBuf,
         includes_paths: Vec<PathBuf>,
-        verbose: bool)
-
-        -> Result<(), &'static str>;
-
-
-    fn build_root_from_config_path(project_path: &str) -> Result<PathBuf, &'static str> {
-        // `project_path` is the path passed from CLI (currently the config file path).
-        // Canonicalize so output paths are absolute and independent of current_dir.
-        let cfg = Path::new(project_path)
-            .canonicalize()
-            .map_err(|_| "Invalid project path")?;
-
-        cfg.parent()
-            .ok_or("Invalid project path")
-            .map(|p| p.to_path_buf())
-    }
+        verbose: bool,
+    ) -> Result<(), &'static str>;
 }
