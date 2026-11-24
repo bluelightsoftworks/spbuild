@@ -1,0 +1,13 @@
+name: test
+projects:
+- name: test
+  version: 0.0.1
+  project_type: Executable
+  target_archs:
+  - x86
+  target_platforms:
+  - win
+  path: ./test
+  dependencies: []
+  additional_includes: []
+  additional_static_libs: []
