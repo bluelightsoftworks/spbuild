@@ -13,13 +13,13 @@ pub enum Architecture {
     X64,
     #[serde(rename = "arm")]
     #[strum(serialize = "arm")]
-    ARM,
+    Arm,
     #[serde(rename = "aarch64")]
     #[strum(serialize = "aarch64")]
-    ARM64,
+    Arm64,
     #[serde(rename = "riscv64")]
     #[strum(serialize = "riscv64")]
-    RISCV64,
+    Riscv64,
 }
 
 //TODO: These may not be the right platforms.. Maybe we'll have to make this more precise
@@ -49,9 +49,9 @@ impl fmt::Display for Architecture {
         match self {
             Architecture::X86 => write!(f, "x86"),
             Architecture::X64 => write!(f, "x86_64"),
-            Architecture::ARM => write!(f, "arm"),
-            Architecture::ARM64 => write!(f, "aarch64"),
-            Architecture::RISCV64 => write!(f, "riscv64"),
+            Architecture::Arm => write!(f, "arm"),
+            Architecture::Arm64 => write!(f, "aarch64"),
+            Architecture::Riscv64 => write!(f, "riscv64"),
         }
     }
 }
@@ -61,9 +61,9 @@ impl Architecture {
         match self {
             Architecture::X86 => "i686".to_string(),
             Architecture::X64 => "x86_64".to_string(),
-            Architecture::ARM => "arm".to_string(),
-            Architecture::ARM64 => "aarch64".to_string(),
-            Architecture::RISCV64 => "riscv64".to_string(),
+            Architecture::Arm => "arm".to_string(),
+            Architecture::Arm64 => "aarch64".to_string(),
+            Architecture::Riscv64 => "riscv64".to_string(),
         }
     }
 }
@@ -104,11 +104,9 @@ impl Platform {
 
 impl PartialEq<Platform> for &Platform {
     fn eq(&self, other: &Platform) -> bool {
-        match (self, other) {
-            (Platform::Win, Platform::Win) => true,
-            (Platform::Linux, Platform::Linux) => true,
-            (Platform::MacOS252, Platform::MacOS252) => true,
-            _ => false,
-        }
+        matches!((self, other), 
+            (Platform::Win, Platform::Win) |
+            (Platform::Linux, Platform::Linux) | 
+            (Platform::MacOS252, Platform::MacOS252))
     }
 }

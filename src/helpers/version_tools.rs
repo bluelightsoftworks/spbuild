@@ -1,4 +1,5 @@
 //noinspection D
+
 /// Compares two version strings for equality. This function compares two versions from the format "<mod>major.minor.patch".
 /// Here are the available modifiers:
 /// - "^": Compatible with version (e.g., "^1.2.3" is compatible with "1.3.0" but not "2.0.0").
@@ -15,7 +16,6 @@
 /// # Returns
 /// * `true` if the versions are equal, `false` otherwise.
 pub fn version_check(required_version: &str, provided_version: &str) -> bool {
-
     // Safely get the first character, if any
     let mut chars_iter = required_version.chars();
     let first_char_opt = chars_iter.next();
@@ -34,10 +34,10 @@ pub fn version_check(required_version: &str, provided_version: &str) -> bool {
 
         if modifier_a.eq(">") || modifier_a.eq("<") {
             // Check for two character modifiers (e.g., ">=" or "<=") safely
-            if let Some(second_char) = chars_iter.next() {
-                if second_char.eq(&'=') {
-                    modifier_a.push(second_char);
-                }
+            if let Some(second_char) = chars_iter.next()
+                && second_char.eq(&'=')
+            {
+                modifier_a.push(second_char);
             }
         }
     }
@@ -46,46 +46,50 @@ pub fn version_check(required_version: &str, provided_version: &str) -> bool {
     let clean_required_version = required_version.replace(&['<', '>', '=', '^', '~'][..], "");
     let clean_provided_version = provided_version.replace(&['<', '>', '=', '^', '~'][..], "");
 
-
     // MY EEYYYYYYYYESSSSSS
-    if modifier_a.eq("^") {                         // Compatible with version (same major)
+    if modifier_a.eq("^") {
+        // Compatible with version (same major)
         major_eq(clean_provided_version, clean_required_version)
-
-    } else if modifier_a.eq("~") {                  // Approximately equivalent to version (same major and minor)
-        major_eq(clean_provided_version.clone(), clean_required_version.clone())
-            && minor_eq(clean_provided_version, clean_required_version)
-
-    } else if modifier_a.eq(">") {                  // Greater than version
+    } else if modifier_a.eq("~") {
+        // Approximately equivalent to version (same major and minor)
+        major_eq(
+            clean_provided_version.clone(),
+            clean_required_version.clone(),
+        ) && minor_eq(clean_provided_version, clean_required_version)
+    } else if modifier_a.eq(">") {
+        // Greater than version
         // provided_version must be strictly greater than required_version
         greater_than(clean_provided_version, clean_required_version)
-
-    } else if modifier_a.eq("<") {                  // Less than version
+    } else if modifier_a.eq("<") {
+        // Less than version
         // provided_version must be strictly less than required_version
         greater_than(clean_required_version, clean_provided_version)
-
-    } else if modifier_a.eq(">=") {                 // Greater than or equal to version
-        greater_than(clean_provided_version.clone(), clean_required_version.clone())
-            || clean_provided_version.eq(&clean_required_version)
-
-    } else if modifier_a.eq("<=") {                 // Less than or equal to version
-        greater_than(clean_required_version.clone(), clean_provided_version.clone())
-            || clean_provided_version.eq(&clean_required_version)
-
-    } else {                                              // Exact match required (same major, minor, and patch)
+    } else if modifier_a.eq(">=") {
+        // Greater than or equal to version
+        greater_than(
+            clean_provided_version.clone(),
+            clean_required_version.clone(),
+        ) || clean_provided_version.eq(&clean_required_version)
+    } else if modifier_a.eq("<=") {
+        // Less than or equal to version
+        greater_than(
+            clean_required_version.clone(),
+            clean_provided_version.clone(),
+        ) || clean_provided_version.eq(&clean_required_version)
+    } else {
+        // Exact match required (same major, minor, and patch)
         required_version.eq(provided_version)
-
     }
-
 }
 
-// Checks for major version equality
+/// Checks for major version equality
 fn major_eq(version_a: String, version_b: String) -> bool {
     let major_a = version_a.split('.').next().unwrap_or("");
     let major_b = version_b.split('.').next().unwrap_or("");
     major_a == major_b
 }
 
-// Checks for minor version equality
+/// Checks for minor version equality
 fn minor_eq(version_a: String, version_b: String) -> bool {
     let parts_a: Vec<&str> = version_a.split('.').collect();
     let parts_b: Vec<&str> = version_b.split('.').collect();
@@ -97,7 +101,7 @@ fn minor_eq(version_a: String, version_b: String) -> bool {
     parts_a[1] == parts_b[1]
 }
 
-// Checks if version_a is greater than version_b
+/// Checks if version_a is greater than version_b
 fn greater_than(version_a: String, version_b: String) -> bool {
     let parts_a: Vec<u32> = version_a
         .split('.')
@@ -109,19 +113,39 @@ fn greater_than(version_a: String, version_b: String) -> bool {
         .collect();
 
     // Not really elegant but it works
-    let a0 = *parts_a.get(0).unwrap_or(&0);
+    let a0 = *parts_a.first().unwrap_or(&0);
     let a1 = *parts_a.get(1).unwrap_or(&0);
     let a2 = *parts_a.get(2).unwrap_or(&0);
 
-    let b0 = *parts_b.get(0).unwrap_or(&0);
+    let b0 = *parts_b.first().unwrap_or(&0);
     let b1 = *parts_b.get(1).unwrap_or(&0);
     let b2 = *parts_b.get(2).unwrap_or(&0);
 
     (a0, a1, a2) > (b0, b1, b2)
 }
 
+/// Checks if a string is a valid version string in the format "major.minor.patch"
+pub fn is_valid_version_string(version_string: &str) -> bool {
+    let parts = version_string.split('.').collect::<Vec<&str>>();
+
+    // 3 parts
+    if parts.len() != 3 {
+        return false;
+    }
+
+    // All integers
+    for part in parts {
+        if part.parse::<u32>().is_err() {
+            return false;
+        }
+    }
+
+    true
+}
+
 #[cfg(test)]
 mod tests {
+    use super::is_valid_version_string;
     use super::version_check;
 
     #[test]
@@ -179,5 +203,15 @@ mod tests {
         assert!(!version_check(">1", "0.9.9"));
         assert!(!version_check(">1", "1.0.0"));
         assert!(version_check(">1", "1.0.1"));
+    }
+
+    #[test]
+    fn invalid_version_strings() {
+        assert!(!is_valid_version_string("1.2"));
+        assert!(!is_valid_version_string("1.2.2.2"));
+        assert!(!is_valid_version_string("1.2.a"));
+        assert!(!is_valid_version_string("1"));
+        assert!(!is_valid_version_string("not_a_version"));
+        assert!(is_valid_version_string("1.2.3"));
     }
 }

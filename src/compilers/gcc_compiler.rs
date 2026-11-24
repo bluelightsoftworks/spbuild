@@ -82,7 +82,7 @@ impl GccCompiler {
     /// # Arguments
     /// * `exe_path` - The path to the executable for which to resolve DLL dependencies
     ///
-    pub fn resolve_dlls(exe_path: &PathBuf, verbose: &bool) -> Result<(), String> {
+    pub fn resolve_dlls(exe_path: &PathBuf) -> Result<(), String> {
         let spbuild_root = match env::current_exe() {
             Ok(path) => path,
             Err(_) => {
@@ -108,7 +108,7 @@ impl GccCompiler {
             return Err(msg.to_string());
         }
 
-        Console::log_info("\n\n===> Running cpdll.py script for DLL dependency resolution...");
+        Console::log_info("\n\n===> Running cpdll.py script for DLL dependencies resolution...");
 
         // Command crafting: execute the script directly (honors shebang where supported)
         let mut command = Command::new(&cpdll_script_path);
@@ -116,18 +116,13 @@ impl GccCompiler {
         command.arg(exe_path);
 
         // Eventual logging configuration for the script execution
-        if *verbose {
-            command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+        command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
 
-            Console::log_verbose(
-                &format!(
-                    "Executing command: {} {}",
-                    &cpdll_script_path.display(),
-                    exe_path.display()
-                ),
-                true,
-            );
-        }
+        Console::log_verbose(&format!(
+            "Executing command: {} {}",
+            cpdll_script_path.display(),
+            exe_path.display()
+        ));
 
         // Execution
         let output = command.output();
@@ -191,11 +186,11 @@ impl GccCompiler {
         }
 
         command
-            .current_dir(&project_dir)
+            .current_dir(project_dir)
             .arg("-c")
-            .arg(&abs_infile_path)
+            .arg(abs_infile_path)
             .arg("-o")
-            .arg(&abs_output_path);
+            .arg(abs_output_path);
 
         command
     }
@@ -204,11 +199,10 @@ impl GccCompiler {
 impl Compiler for GccCompiler {
     fn compile_file(
         &self,
-        abs_infile_path: &PathBuf,
-        abs_output_dir: &PathBuf,
-        project_dir: &PathBuf,
+        abs_infile_path: &Path,
+        abs_output_dir: &Path,
+        project_dir: &Path,
         additional_includes: &Vec<PathBuf>,
-        _verbose: bool,
     ) -> Result<PathBuf, &'static str> {
         Console::log_info(&format!(
             "> Compiling source file: {}",
@@ -216,7 +210,7 @@ impl Compiler for GccCompiler {
         ));
 
         // Checks for edge cases I don't even know if they can happen
-        let last_component_abs_output_dir = abs_infile_path.components().last();
+        let last_component_abs_output_dir = abs_infile_path.components().next_back();
         if last_component_abs_output_dir.is_none() {
             return Err("Invalid input file path");
         }
@@ -243,15 +237,15 @@ impl Compiler for GccCompiler {
             &self.gcc_path
         };
 
-        Console::log_verbose(&format!("input:  {}", abs_infile_path.display()), _verbose);
-        Console::log_verbose(&format!("output: {}", abs_output_path.display()), _verbose);
+        Console::log_verbose(&format!("input:  {}", abs_infile_path.display()));
+        Console::log_verbose(&format!("output: {}", abs_output_path.display()));
 
         let mut command = Self::create_compile_command(
             driver,
             self.is32bit,
-            abs_infile_path,
+            &abs_infile_path.to_path_buf(),
             &abs_output_path,
-            project_dir,
+            &project_dir.to_path_buf(),
             additional_includes,
         );
 
@@ -280,9 +274,8 @@ impl Compiler for GccCompiler {
     fn compile_project(
         &self,
         project: &Project,
-        solution_root: &PathBuf,
+        solution_root: &Path,
         include_directories: Vec<PathBuf>,
-        _verbose: bool,
     ) -> Result<(), &'static str> {
         let gpp_path = &self.gpp_path;
         let abs_solution_root = solution_root
@@ -294,7 +287,7 @@ impl Compiler for GccCompiler {
             project.name,
             project.version,
             project.path.display(),
-            &gpp_path
+            gpp_path
         ));
 
         let source_dir = solution_root
@@ -336,13 +329,10 @@ impl Compiler for GccCompiler {
             || !exists(&rel_artifacts_dir).unwrap_or(false)
         {
             // Creates output directory if it doesn't exist
-            Console::log_verbose(
-                &format!(
-                    "Project output directory not found: {}",
-                    project.path.display()
-                ),
-                _verbose,
-            );
+            Console::log_verbose(&format!(
+                "Project output directory not found: {}",
+                project.path.display()
+            ));
             create_dir_all(rel_output_dir).map_err(|_| "Failed to create output directory")?;
             create_dir_all(rel_final_dir).map_err(|_| "Failed to create final directory")?;
             create_dir_all(rel_artifacts_dir)
@@ -370,7 +360,6 @@ impl Compiler for GccCompiler {
                     &abs_output_dir,
                     &project.path,
                     &include_directories,
-                    _verbose,
                 )
                 .map_err(|err| format!("Error compiling project: {}", err));
         }
@@ -382,9 +371,8 @@ impl Compiler for GccCompiler {
         &self,
         project: &Project,
         _solution: &Solution, // Will probably be used
-        solution_root: &PathBuf,
+        solution_root: &Path,
         includes_paths: Vec<PathBuf>,
-        verbose: bool,
     ) -> Result<(), &'static str> {
         if project.project_type == ProjectType::StaticLib {
             Console::log_info("Static library project detected; skipping linking step.");
@@ -418,7 +406,7 @@ impl Compiler for GccCompiler {
 
         // Dependencies' object files
         for path in includes_paths {
-            let files = list_files(&path).map_err(|_| "Failed to list dependency files")?;
+            let files = list_files(&path).map_err(|_| "Failed to list dependencies files")?;
             let mut dep_object_files = filter_files(&files, &path, &vec![String::from("o")]);
             object_files.append(&mut dep_object_files);
         }
@@ -438,13 +426,10 @@ impl Compiler for GccCompiler {
             };
 
             if exists(&resolved_lib_path).unwrap_or(false) {
-                Console::log_verbose(
-                    &format!(
-                        "Adding additional library to link: {}",
-                        resolved_lib_path.display()
-                    ),
-                    verbose,
-                );
+                Console::log_verbose(&format!(
+                    "Adding additional library to link: {}",
+                    resolved_lib_path.display()
+                ));
                 object_files.push(resolved_lib_path);
             } else {
                 Console::log_error(&format!(
@@ -466,7 +451,7 @@ impl Compiler for GccCompiler {
         ));
 
         // Adds object files to the linker command
-        command.current_dir(&abs_project_output_path);
+        command.current_dir(abs_project_output_path);
         for obj in &object_files {
             command.arg(obj);
         }
@@ -474,13 +459,10 @@ impl Compiler for GccCompiler {
         // Specific for Windows targets (DLLs and exe size limitations)
         if &self.t_platform == "w64-mingw32" {
             let exe_with_ext = output_executable.with_extension("exe");
-            Console::log_verbose(
-                &format!(
-                    "Windows target detected; using executable name: {}",
-                    exe_with_ext.display()
-                ),
-                verbose,
-            );
+            Console::log_verbose(&format!(
+                "Windows target detected; using executable name: {}",
+                exe_with_ext.display()
+            ));
 
             // TODO: Give the user the option to choose static or dynamic linking for Windows targets.
             // Also use DLLs when available
@@ -492,7 +474,7 @@ impl Compiler for GccCompiler {
             command.arg("-o").arg(&output_executable);
         }
 
-        Console::log_verbose(&format!("Linking command: {:?}", command), verbose);
+        Console::log_verbose(&format!("Linking command: {:?}", command));
 
         let output = command
             .output()

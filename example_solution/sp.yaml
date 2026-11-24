@@ -13,12 +13,14 @@ projects:
       - x86
     path: ./alpha/
     dependencies:
-      - name: ProjectBeta
+      - name: ProjectBeta   # a local dependencies
         version: ^2.0.0
-      #- name: libraryB        # just an example of a dependency with another version constraint
+      - name: glfw3         # an external dependencies
+        version: ~3.3.0
+      #- name: libraryB        # just an example of a dependencies with another version constraint
       #  version: ~1.5.0
-    additional_includes: []
-    additional_static_libs: []
+    additional_includes: [ ]
+    additional_static_libs: [ ]
 
   - name: ProjectBeta
     version: 2.1.0
@@ -30,6 +32,6 @@ projects:
     target_archs:
       - x86_64
     path: ./beta/
-    dependencies: []
-    additional_includes: []
-    additional_static_libs: []
+    dependencies: [ ]
+    additional_includes: [ ]
+    additional_static_libs: [ ]

@@ -31,13 +31,21 @@ pub mod builders {
     }
 }
 
-pub mod dependency_manager {
+pub mod dependencies {
+    include!("dependencies/dependency_resolver.rs");
+
     pub mod local_resolver {
-        include!("dependency_manager/local_resolver.rs");
+        include!("dependencies/local_resolver.rs");
     }
 
     pub mod external_resolver {
-        include!("dependency_manager/external_resolver.rs");
+        use crate::helpers::console::Console;
+
+        include!("dependencies/external_resolver.rs");
+    }
+
+    pub mod online_resolver {
+        include!("dependencies/online_resolver.rs");
     }
 }
 
@@ -66,7 +74,7 @@ pub struct BuildArgs {
     #[arg(short, long, action = clap::ArgAction::SetTrue, help = "Override output directory if it already exists")]
     override_output: bool,
 
-    #[arg(long, action = clap::ArgAction::SetTrue, help = "Prints SPBuild version and exits")]
+    #[arg(long, global = true, action = clap::ArgAction::SetTrue, help = "Prints SPBuild version and exits")]
     verbose: bool,
 
     #[arg(
@@ -108,7 +116,10 @@ fn main() {
     let args = Args::parse();
 
     match args.clone().command {
-        Commands::Build(build_args) => build_action(build_args),
+        Commands::Build(build_args) => {
+            Console::set_verbose(build_args.verbose);
+            build_action(build_args)
+        },
 
         Commands::Init(init_args) => init_action(init_args),
         Commands::Version => {

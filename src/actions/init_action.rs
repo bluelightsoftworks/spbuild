@@ -56,9 +56,9 @@ fn create_project(available_projects: &Vec<Project>) -> Project {
     let a_project_archs = vec![
         Architecture::X86,
         Architecture::X64,
-        Architecture::ARM,
-        Architecture::ARM64,
-        Architecture::RISCV64,
+        Architecture::Arm,
+        Architecture::Arm64,
+        Architecture::Riscv64,
     ];
     match MultiSelect::new("Choose the project's target ISAs", a_project_archs).prompt() {
         Ok(choice) => {
@@ -99,11 +99,11 @@ fn create_project(available_projects: &Vec<Project>) -> Project {
     }
 
     // Dependency projects
-    match Confirm::new("Do you wish to add any dependency from the current solution?").prompt() {
+    match Confirm::new("Do you wish to add any dependencies from the current solution?").prompt() {
         Ok(answer) => {
             if answer {
                 match MultiSelect::new(
-                    "Choose the dependency projects",
+                    "Choose the dependencies projects",
                     available_projects.to_owned(),
                 )
                 .prompt()
@@ -144,7 +144,7 @@ fn write_config(sol: Solution, path: PathBuf) -> Result<(), Box<dyn std::error::
 
     let mut buffer = File::create(path)?;
     buffer.write_all(config.as_bytes())?;
-    
+
     for project in sol.projects {
         let project_path = Path::new(&project.path);
         if !project_path.exists() {

@@ -8,7 +8,7 @@ pub fn parse_config(path: &Path) -> Result<Solution, String> {
     let unserialized_string = read_to_string(path);
 
     // Error handling
-    if (&unserialized_string).is_err() {
+    if unserialized_string.is_err() {
         return Err(format!("Failed to read config file: {}", path.display()));
     }
     

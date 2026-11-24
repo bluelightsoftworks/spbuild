@@ -1,7 +1,7 @@
 use crate::BuildArgs;
 use crate::builders::gcc::GccBuilder;
 use crate::config_parser::parse_config;
-use crate::dependency_manager::local_resolver::has_circular_dependency;
+use crate::dependencies::local_resolver::has_circular_dependency;
 use crate::helpers::console::Console;
 use crate::solution::Solution;
 use crate::target::{Architecture, Platform};
@@ -120,7 +120,6 @@ pub fn build_action(args: BuildArgs) {
             host_platform, host_arch
         )
         .as_str(),
-        args.verbose,
     );
 
     let normal_host_platform = match host_platform {
@@ -171,7 +170,7 @@ pub fn build_action(args: BuildArgs) {
     for project in &config.projects {
         if has_circular_dependency(project, &config, &mut Vec::new()) {
             Console::log_fatal(
-                format!("Circular dependency detected in project {}", project.name).as_str(),
+                format!("Circular dependencies detected in project {}", project.name).as_str(),
             );
             exit(1);
         }

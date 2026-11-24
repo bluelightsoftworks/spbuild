@@ -1,7 +1,7 @@
 use crate::BuildArgs;
 use crate::compiler_interfaces::common::Compiler;
 use crate::compiler_interfaces::gcc::GccCompiler;
-use crate::dependency_manager::local_resolver::resolve_additional_includes;
+use crate::dependencies::resolve_dependencies;
 use crate::helpers::console::Console;
 use crate::helpers::file_tools::{do_dirs_exists, override_dirs};
 use crate::solution::ProjectType;
@@ -151,12 +151,11 @@ impl GccBuilder {
         let target_string = format!("{}-{}", gcc_target_platform, gcc_target_arch);
 
         // Resolve dependencies and include dirs.
-        let inputs = match resolve_additional_includes(
+        let inputs = match resolve_dependencies(
             project,
             &self.solution,
             &self.config_path,
             &target_string,
-            self.args.verbose,
         ) {
             Ok(v) => v,
             Err(e) => {
@@ -171,45 +170,37 @@ impl GccBuilder {
                 continue;
             }
 
-            let res = &self.compiler.compile_project(
-                dep,
-                &self.config_path,
-                Vec::new(),
-                self.args.verbose,
-            );
+            let res = &self
+                .compiler
+                .compile_project(dep, &self.config_path, Vec::new());
 
             if let Err(e) = res {
                 Console::log_fatal(
-                    format!("Error compiling dependency {}: {}", dep.name, e).as_str(),
+                    format!("Error compiling dependencies {}: {}", dep.name, e).as_str(),
                 );
-                return Err("Error compiling dependency: ".to_string());
+                return Err("Error compiling dependencies: ".to_string());
             }
 
-            let res = &self.compiler.link_project(
-                dep,
-                &self.solution,
-                &self.config_path,
-                Vec::new(),
-                self.args.verbose,
-            );
+            let res =
+                &self
+                    .compiler
+                    .link_project(dep, &self.solution, &self.config_path, Vec::new());
 
             if let Err(e) = res {
                 Console::log_fatal(
-                    format!("Error linking dependency {}: {}\n", dep.name, e).as_str(),
+                    format!("Error linking dependencies {}: {}\n", dep.name, e).as_str(),
                 );
-                return Err("Error linking dependency: ".to_string());
+                return Err("Error linking dependencies: ".to_string());
             }
 
             self.compiled_projects.push(dep.name.clone());
         }
 
         // Compile current project with resolved include dirs.
-        let res = &self.compiler.compile_project(
-            project,
-            &self.config_path,
-            inputs.include_dirs.clone(),
-            self.args.verbose,
-        );
+        let res =
+            &self
+                .compiler
+                .compile_project(project, &self.config_path, inputs.include_dirs.clone());
 
         if let Err(e) = res {
             Console::log_fatal(format!("Error compiling project: {}", e).as_str());
@@ -224,13 +215,10 @@ impl GccBuilder {
         // For now, gcc_builder interprets these as directories to scan for `.o` files.
         link_inputs.extend(inputs.include_dirs.clone());
 
-        let res = &self.compiler.link_project(
-            project,
-            &self.solution,
-            &self.config_path,
-            link_inputs,
-            self.args.verbose,
-        );
+        let res =
+            &self
+                .compiler
+                .link_project(project, &self.solution, &self.config_path, link_inputs);
 
         if let Err(e) = res {
             Console::log_fatal(format!("Error linking project: {}\n", e).as_str());
@@ -255,7 +243,7 @@ impl GccBuilder {
                 .join(&project.name)
                 .with_extension("exe");
 
-            if let Err(e) = GccCompiler::resolve_dlls(&abs_exe_path, &self.args.verbose) {
+            if let Err(e) = GccCompiler::resolve_dlls(&abs_exe_path) {
                 Console::log_fatal(format!("Error resolving DLLs: {}", e).as_str());
                 return Err(("Error resolving DLLs: ".to_string() + &e).to_string());
             }

@@ -6,7 +6,7 @@ pub fn version_action() {
     const LICENSE: &str = env!("CARGO_PKG_LICENSE");
 
     Console::log_info(format!("{} version {}. Distributed under the {} license.", NAME, VERSION, LICENSE).as_str());
-    Console::log_info(format!("{}", DESCRIPTION).as_str());
+    Console::log_info(DESCRIPTION);
     Console::log_info("THIS SOFTWARE AND ANY RELATED DOCUMENTATION ARE PROVIDED \"AS IS\" WITHOUT WARRANTY OF ANY KIND.");
     Console::log_info(format!("More info available here: {}", HOMEPAGE).as_str());
 }

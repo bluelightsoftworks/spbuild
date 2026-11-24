@@ -10,7 +10,7 @@ The goal of this project is to help little teams and solo devs configuring a dev
 need to use:
 
 ```bash
-spbuild <command>
+sp <command>
 ```
 
 Here are some available options:
@@ -98,7 +98,7 @@ python <path_to_cpdll.py> <path_to_exe>
 
 ## TODO list
 
-- [ ] Compile a basic solution
+- [x] Compile a basic solution
     - [x] Compile with GCC
         - [x] Single project solution
         - [x] Link
@@ -114,11 +114,21 @@ python <path_to_cpdll.py> <path_to_exe>
     - 0.2.1: Fix strange documentation, add a bit more error handling
 - 0.3: Cross compilation support, target architectures, target platforms
     - 0.3.1: Bugfixes
-    - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling) ← Cargo publishing ← Latest ← Dev branch
-- 0.4: CLI Rework (`spbuild build`, `spbuild init`...) and external dependencies
+    - 0.3.2: Better dependencies (.dll, .so, .dylib, .lib handling) ← Latest
+- 0.4: CLI Rework (`sp build`, `sp init`...) and external dependencies
 - 0.5: Package manager
 - 0.6: Incremental and parallel build support
 - 0.7: Testing, bug fixing...
 - 1.0: Final polish and Release!
 
 > Note: while Windows and macOS support were planned, due to personal reasons, I am not able to implement them right now
+
+## Legal notices
+
+This project uses the following third-party libraries:
+
+- [clap](https://github.com/clap-rs/clap)
+- [serde](https://github.com/serde-rs/serde)
+- [colored](https://github.com/marwes/colored)
+- [strum](https://github.com/Peternator7/strum)
+- [pkg-config](https://github.com/rust-lang/pkg-config-rs)
